@@ -131,8 +131,12 @@ function OutreachInner() {
                   Select Client
                 </label>
                 <Select value={selectedClientId} onValueChange={(v) => setSelectedClientId(v ?? "")}>
-                  <SelectTrigger className="bg-white border-slate-200">
-                    <SelectValue placeholder={loadingData ? "Loading clients…" : "Choose a client…"} />
+                  <SelectTrigger className="bg-white border-slate-200 w-full">
+                    <span className="flex flex-1 text-left text-sm truncate">
+                      {selectedClient
+                        ? `${selectedClient.name}${selectedClient.company ? ` — ${selectedClient.company}` : ""}`
+                        : loadingData ? "Loading clients…" : "Choose a client…"}
+                    </span>
                   </SelectTrigger>
                   <SelectContent>
                     {clients.map((c) => (
