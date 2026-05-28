@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Service Business Hub — Capstone Presentation 2026</title>
+<style>
+/* ── Reset & Base ──────────────────────────────────────────────────────── */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --violet:       #7c3aed;
+  --violet-light: #a78bfa;
+  --violet-dim:   rgba(139,92,246,0.25);
+  --emerald:      #10b981;
+  --rose:         #f43f5e;
+  --amber:        #f59e0b;
+  --sky:          #0ea5e9;
+  --bg:           #080B16;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  background: var(--bg);
+  color: #e2e8f0;
+  height: 100vh;
+  overflow: hidden;
+  user-select: none;
+}
+
+/* ── Slide Engine ───────────────────────────────────────────────────────── */
+.stage { position: relative; width: 100vw; height: 100vh; }
+
+.slide {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 52px 72px 80px;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(48px);
+  transition: opacity 0.45s ease, transform 0.45s ease;
+  /* Aurora background */
+  background-color: var(--bg);
+  background-image:
+    linear-gradient(rgba(139,92,246,0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(139,92,246,0.035) 1px, transparent 1px),
+    radial-gradient(ellipse 80% 50% at 20% 0%,  rgba(139,92,246,0.09) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 40% at 80% 100%, rgba(99,102,241,0.06) 0%, transparent 60%);
+  background-size: 40px 40px, 40px 40px, 100% 100%, 100% 100%;
+}
+.slide.active {
+  opacity: 1;
+  pointer-events: all;
+  transform: translateX(0);
+}
+.slide.exit {
+  opacity: 0;
+  transform: translateX(-48px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+/* ── Progress bar ───────────────────────────────────────────────────────── */
+#progress {
+  position: fixed; top: 0; left: 0; height: 2px; width: 0%;
+  background: linear-gradient(90deg, var(--violet), var(--violet-light));
+  box-shadow: 0 0 10px rgba(124,58,237,0.6);
+  transition: width 0.4s ease;
+  z-index: 200;
+}
+
+/* ── Navigation bar ─────────────────────────────────────────────────────── */
+.nav {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 14px;
+  background: rgba(13,11,26,0.85); backdrop-filter: blur(20px);
+  border: 1px solid rgba(139,92,246,0.2);
+  padding: 10px 22px; border-radius: 50px;
+  z-index: 200; box-shadow: 0 4px 24px rgba(0,0,0,0.4);
+}
+.nav-btn {
+  width: 34px; height: 34px; border-radius: 50%;
+  background: rgba(124,58,237,0.12); border: 1px solid rgba(139,92,246,0.25);
+  color: #a78bfa; cursor: pointer; font-size: 15px;
+  display: flex; align-items: center; justify-content: center; transition: all 0.2s;
+}
+.nav-btn:hover { background: rgba(124,58,237,0.28); box-shadow: 0 0 10px rgba(124,58,237,0.35); }
+.slide-counter { font-size: 12px; color: #475569; min-width: 52px; text-align: center; font-family: monospace; }
+.dots { display: flex; gap: 5px; }
+.dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: rgba(139,92,246,0.2); transition: all 0.3s; cursor: pointer;
+}
+.dot.active { background: var(--violet); box-shadow: 0 0 6px rgba(124,58,237,0.7); width: 18px; border-radius: 3px; }
+
+/* ── Keyboard hint ──────────────────────────────────────────────────────── */
+.hint {
+  position: fixed; top: 18px; right: 22px;
+  font-size: 11px; color: #1e293b; z-index: 200; letter-spacing: 0.04em;
+}
+
+/* ── Typography helpers ─────────────────────────────────────────────────── */
+.gradient-text {
+  background: linear-gradient(135deg, #ffffff 0%, #c4b5fd 55%, #a78bfa 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+.overline {
+  font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
+  color: rgba(167,139,250,0.75); display: flex; align-items: center; gap: 8px; margin-bottom: 10px;
+}
+.overline::before { content: ''; width: 18px; height: 1px; background: rgba(167,139,250,0.55); }
+
+h1 { font-size: clamp(2.8rem, 4.5vw, 4.2rem); font-weight: 800; line-height: 1.08; }
+h2 { font-size: clamp(1.9rem, 2.8vw, 2.6rem); font-weight: 700; line-height: 1.15; }
+h3 { font-size: 1.05rem; font-weight: 600; }
+
+.sub { font-size: 1.15rem; color: #94a3b8; line-height: 1.6; margin-top: 12px; max-width: 700px; }
+
+/* ── Glass utilities ────────────────────────────────────────────────────── */
+.glass {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.07);
+  backdrop-filter: blur(16px); border-radius: 18px;
+}
+.glass-v {
+  background: rgba(124,58,237,0.07);
+  border: 1px solid rgba(139,92,246,0.18); border-radius: 18px;
+}
+.neon-btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 10px 24px; border-radius: 12px; font-size: 13px; font-weight: 600;
+  color: #fff; cursor: pointer; border: 1px solid rgba(124,58,237,0.4);
+  background: linear-gradient(135deg, rgba(124,58,237,0.8), rgba(99,102,241,0.6));
+  box-shadow: 0 0 16px rgba(124,58,237,0.35); transition: all 0.2s;
+  text-decoration: none;
+}
+.neon-btn:hover { box-shadow: 0 0 24px rgba(124,58,237,0.55); transform: translateY(-1px); }
+
+/* ── Badge ──────────────────────────────────────────────────────────────── */
+.badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase;
+  padding: 3px 10px; border-radius: 50px;
+}
+.badge-v { background: rgba(139,92,246,0.14); border: 1px solid rgba(139,92,246,0.3); color: #a78bfa; }
+.badge-e { background: rgba(16,185,129,0.12); border: 1px solid rgba(16,185,129,0.28); color: #34d399; }
+.badge-a { background: rgba(245,158,11,0.12); border: 1px solid rgba(245,158,11,0.28); color: #fbbf24; }
+.badge-r { background: rgba(244,63,94,0.12); border: 1px solid rgba(244,63,94,0.28); color: #fb7185; }
+.badge-b { background: rgba(14,165,233,0.12); border: 1px solid rgba(14,165,233,0.28); color: #38bdf8; }
+
+/* ── Grid helpers ───────────────────────────────────────────────────────── */
+.g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+.g3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+.g4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; }
+
+/* ── ─────────────────────── SLIDE SPECIFIC ──────────────────────────── ── */
+
+/* S1 — Title */
+#s1 { justify-content: center; align-items: center; text-align: center; }
+.logo-ring {
+  width: 84px; height: 84px; border-radius: 26px; margin: 0 auto 30px;
+  background: linear-gradient(135deg,#7c3aed,#4f46e5);
+  box-shadow: 0 0 40px rgba(124,58,237,0.6),0 0 80px rgba(124,58,237,0.25);
+  display: flex; align-items: center; justify-content: center; font-size: 40px;
+  animation: pulse-ring 3s ease-in-out infinite;
+  position: relative;
+}
+.logo-ring::after {
+  content: '';
+  position: absolute; inset: -6px; border-radius: 30px;
+  border: 1px solid rgba(139,92,246,0.25); animation: spin-slow 8s linear infinite;
+}
+@keyframes pulse-ring { 0%,100% { box-shadow: 0 0 40px rgba(124,58,237,0.6),0 0 80px rgba(124,58,237,0.25); } 50% { box-shadow: 0 0 60px rgba(124,58,237,0.8),0 0 120px rgba(124,58,237,0.4); } }
+@keyframes spin-slow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+.title-chips { display: flex; gap: 12px; justify-content: center; margin-top: 36px; flex-wrap: wrap; }
+.chip { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 50px; padding: 7px 18px; font-size: 12px; color: #475569; }
+
+/* S2 — Problem */
+.problem-card {
+  glass: rgba(255,255,255,0.03);
+  background: rgba(255,255,255,0.025);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 18px; padding: 24px; position: relative; overflow: hidden;
+}
+.problem-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; }
+.pc-r::before { background: linear-gradient(90deg,#f43f5e,transparent); }
+.pc-a::before { background: linear-gradient(90deg,#f59e0b,transparent); }
+.pc-v::before { background: linear-gradient(90deg,#7c3aed,transparent); }
+.pc-b::before { background: linear-gradient(90deg,#0ea5e9,transparent); }
+.p-icon { font-size: 30px; margin-bottom: 12px; }
+.p-title { font-size: 15px; font-weight: 600; color: #cbd5e1; margin-bottom: 7px; }
+.p-body { font-size: 12.5px; color: #64748b; line-height: 1.65; }
+
+/* S3 — Who */
+.persona {
+  glass: true;
+  background: rgba(255,255,255,0.025); border: 1px solid rgba(255,255,255,0.07); border-radius: 18px; padding: 26px;
+}
+.persona-avatar {
+  width: 52px; height: 52px; border-radius: 50%; margin-bottom: 14px;
+  display: flex; align-items: center; justify-content: center; font-size: 26px;
+  background: linear-gradient(135deg,#7c3aed,#4f46e5); box-shadow: 0 0 16px rgba(124,58,237,0.4);
+}
+.persona-name { font-size: 16px; font-weight: 700; color: #e2e8f0; margin-bottom: 4px; }
+.persona-role { font-size: 12px; color: #64748b; margin-bottom: 14px; }
+.persona-needs { display: flex; flex-direction: column; gap: 6px; }
+.need-item { font-size: 12px; color: #94a3b8; display: flex; align-items: center; gap: 7px; }
+.need-item::before { content: '→'; color: rgba(167,139,250,0.5); }
+
+/* S4 — Solution */
+.feat-tile {
+  background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 16px; padding: 20px; display: flex; align-items: flex-start; gap: 14px; transition: border-color 0.2s;
+}
+.feat-tile:hover { border-color: rgba(139,92,246,0.25); }
+.feat-ico {
+  width: 42px; height: 42px; border-radius: 13px; display: flex; align-items: center;
+  justify-content: center; font-size: 22px; flex-shrink: 0;
+}
+.feat-name { font-size: 13.5px; font-weight: 600; color: #cbd5e1; margin-bottom: 4px; }
+.feat-desc { font-size: 12px; color: #64748b; line-height: 1.55; }
+
+/* S5 — Links */
+.link-card {
+  background: rgba(255,255,255,0.025); border: 1px solid rgba(139,92,246,0.18);
+  border-radius: 16px; padding: 22px; display: flex; align-items: center; gap: 16px;
+}
+.link-ico { width: 50px; height: 50px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 26px; flex-shrink: 0; }
+.link-label { font-size: 11px; color: #475569; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 5px; }
+.link-url { font-size: 12.5px; color: #a78bfa; font-family: monospace; word-break: break-all; }
+.link-sub { font-size: 11px; color: #334155; margin-top: 4px; }
+
+/* S6 — Architecture */
+.arch-layer {
+  background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 14px; padding: 16px 20px;
+}
+.arch-layer-title { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 10px; }
+.arch-chips { display: flex; gap: 10px; flex-wrap: wrap; }
+.arch-chip {
+  font-size: 12px; padding: 6px 14px; border-radius: 8px;
+  background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+  color: #94a3b8; font-family: monospace;
+}
+.arch-arrow-v {
+  display: flex; justify-content: center; align-items: center;
+  height: 28px; color: rgba(139,92,246,0.4); font-size: 20px;
+}
+
+/* S7 — DB Schema */
+.db-table { background: rgba(255,255,255,0.02); border: 1px solid rgba(139,92,246,0.15); border-radius: 12px; overflow: hidden; }
+.db-head { background: rgba(124,58,237,0.14); padding: 9px 14px; font-size: 12px; font-weight: 700; color: #a78bfa; display: flex; align-items: center; gap: 7px; }
+.db-row { padding: 5px 14px; font-size: 11px; color: #475569; border-top: 1px solid rgba(255,255,255,0.04); display: flex; gap: 6px; align-items: center; }
+.dc-name { color: #94a3b8; font-family: monospace; flex: 1; }
+.dc-type { color: rgba(167,139,250,0.45); font-family: monospace; font-size: 10px; }
+.dc-pk { font-size: 9px; background: rgba(245,158,11,0.12); border: 1px solid rgba(245,158,11,0.25); color: #fbbf24; padding: 1px 5px; border-radius: 3px; }
+.dc-fk { font-size: 9px; background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.22); color: #60a5fa; padding: 1px 5px; border-radius: 3px; }
+
+/* S8 — What Works */
+.check-item {
+  display: flex; align-items: center; gap: 13px;
+  padding: 12px 16px; border-radius: 12px;
+  background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05);
+  font-size: 13.5px; color: #94a3b8;
+}
+.check-dot {
+  width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center; font-size: 11px;
+}
+.done-dot { background: rgba(16,185,129,0.14); border: 1px solid rgba(16,185,129,0.3); color: #34d399; }
+
+/* S9 — AI Layer */
+.ai-flow {
+  display: flex; align-items: stretch; gap: 0; height: 100%;
+}
+.ai-box {
+  flex: 1; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 14px; padding: 22px; display: flex; flex-direction: column; gap: 10px;
+}
+.ai-box-title { font-size: 13px; font-weight: 700; color: #cbd5e1; display: flex; align-items: center; gap: 8px; }
+.ai-arrow { display: flex; align-items: center; padding: 0 10px; color: rgba(139,92,246,0.4); font-size: 28px; }
+.ai-step { font-size: 12px; color: #64748b; padding: 8px 12px; background: rgba(255,255,255,0.03); border-radius: 8px; line-height: 1.5; }
+
+/* S10 — UI Design System */
+.ds-swatch {
+  border-radius: 12px; padding: 14px; text-align: center;
+  font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.7);
+}
+.ds-component {
+  background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 12px; padding: 16px; font-size: 12px; color: #64748b;
+}
+.ds-comp-name { font-size: 13px; font-weight: 600; color: #94a3b8; margin-bottom: 6px; }
+
+/* S11 — Roadmap */
+.phase-card {
+  background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); border-radius: 16px; padding: 20px;
+}
+.phase-label {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+  padding: 3px 10px; border-radius: 50px; display: inline-block; margin-bottom: 12px;
+}
+.phase-live { background: rgba(16,185,129,0.12); border: 1px solid rgba(16,185,129,0.25); color: #34d399; }
+.phase-q3   { background: rgba(245,158,11,0.12); border: 1px solid rgba(245,158,11,0.25); color: #fbbf24; }
+.phase-q4   { background: rgba(139,92,246,0.12); border: 1px solid rgba(139,92,246,0.25); color: #a78bfa; }
+.phase-2027 { background: rgba(14,165,233,0.12); border: 1px solid rgba(14,165,233,0.25); color: #38bdf8; }
+
+.roadmap-feat { font-size: 12.5px; color: #64748b; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.04); display: flex; gap: 7px; }
+.roadmap-feat:last-child { border-bottom: none; }
+.roadmap-feat::before { content: '›'; color: rgba(167,139,250,0.4); }
+
+/* S12 — Thank You */
+#s12 { justify-content: center; align-items: center; text-align: center; }
+.social-row { display: flex; gap: 14px; justify-content: center; margin-top: 32px; flex-wrap: wrap; }
+.social-chip {
+  display: flex; align-items: center; gap: 8px;
+  background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 50px; padding: 10px 20px; font-size: 13px; color: #64748b;
+  text-decoration: none; transition: all 0.2s;
+}
+.social-chip:hover { border-color: rgba(139,92,246,0.35); color: #a78bfa; }
+
+/* ── Animations ─────────────────────────────────────────────────────────── */
+@keyframes float-in {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.slide.active > * { animation: float-in 0.5s ease forwards; }
+.slide.active > *:nth-child(1) { animation-delay: 0.05s; }
+.slide.active > *:nth-child(2) { animation-delay: 0.12s; }
+.slide.active > *:nth-child(3) { animation-delay: 0.20s; }
+.slide.active > *:nth-child(4) { animation-delay: 0.28s; }
+.slide.active > *:nth-child(5) { animation-delay: 0.36s; }
+</style>
+</head>
+<body>
+
+<div id="progress"></div>
+<div class="hint">← → Arrow keys to navigate</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════ -->
+<!--  SLIDE 1 — Title                                                      -->
+<!-- ══════════════════════════════════════════════════════════════════════ -->
+<div class="stage">
+
+<div class="slide active" id="s1">
+  <div class="logo-ring">⚡</div>
+  <div class="overline" style="justify-content:center">Capstone Project · 2026</div>
+  <h1 class="gradient-text" style="font-size:clamp(3rem,5vw,5rem)">Service Business Hub</h1>
+  <p class="sub" style="margin:16px auto 0;text-align:center">
+    An AI-powered CRM & content suite for solo service professionals —<br/>
+    built to eliminate the chaos of client management.
+  </p>
+  <div class="title-chips">
+    <span class="chip">⚛️ Next.js 15</span>
+    <span class="chip">🗄 Supabase</span>
+    <span class="chip">🤖 AI Outreach</span>
+    <span class="chip">🚀 Railway Cloud</span>
+    <span class="chip">🎨 TypeScript</span>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════ -->
+<!--  SLIDE 2 — The Problem                                                -->
+<!-- ══════════════════════════════════════════════════════════════════════ -->
+<div class="slide" id="s2">
+  <div class="slide-header">
+    <div class="overline">The Problem</div>
+    <h2 class="gradient-text">Service businesses lose clients<br/>not from bad work—from forgotten touchpoints.</h2>
+    <p class="sub">Most freelancers and solo service providers rely on spreadsheets, sticky notes, and memory to manage relationships. The result? Inconsistency, dropped follow-ups, and lost revenue.</p>
+  </div>
+  <div class="g4" style="flex:1;align-content:start">
+    <div class="problem-card pc-r">
+      <div class="p-icon">📋</div>
+      <div class="p-title">Scattered Client Data</div>
+      <div class="p-body">Client info lives in WhatsApp, Gmail, Excel and sticky notes — no single source of truth.</div>
+    </div>
+    <div class="problem-card pc-a">
+      <div class="p-icon">🔔</div>
+      <div class="p-title">Forgotten Follow-Ups</div>
+      <div class="p-body">With no automated reminders, high-value clients slip through the cracks for 60+ days at a time.</div>
+    </div>
+    <div class="problem-card pc-v">
+      <div class="p-icon">✍️</div>
+      <div class="p-title">Content Paralysis</div>
+      <div class="p-body">Writing personalised outreach and social posts from scratch every week is exhausting and inconsistent.</div>
+    </div>
+    <div class="problem-card pc-b">
+      <div class="p-icon">📊</div>
+      <div class="p-title">No Visibility</div>
+      <div class="p-body">Without a dashboard, there's no way to see which clients need attention, what's overdue, or what's working.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════ -->
+<!--  SLIDE 3 — Who It's For                                               -->
+<!-- ══════════════════════════════════════════════════════════════════════ -->
+<div class="slide" id="s3">
+  <div class="slide-header">
+    <div class="overline">Target Audience</div>
+    <h2 class="gradient-text">Built for solo service professionals<br/>who want to grow without burning out.</h2>
+  </div>
+  <div class="g3" style="flex:1;align-content:start;gap:18px">
+    <div class="persona">
+      <div class="persona-avatar">🏠</div>
+      <div class="persona-name">Smart Innovations</div>
+      <div class="persona-role">Smart Home Automation · Delhi NCR</div>
+      <div class="badge badge-v" style="margin-bottom:12px">Primary User</div>
+      <div class="persona-needs">
+        <div class="need-item">Manage interior designer & architect referral pipeline</div>
+        <div class="need-item">Track B2B client relationships across projects</div>
+        <div class="need-item">Generate consistent LinkedIn & Instagram content</div>
+        <div class="need-item">Automate re-engagement with inactive clients</div>
+      </div>
+    </div>
+    <div class="persona">
+      <div class="persona-avatar">💼</div>
+      <div class="persona-name">Solo Consultants</div>
+      <div class="persona-role">Freelance Coaches · Brand Strategists</div>
+      <div class="badge badge-a" style="margin-bottom:12px">Core Segment</div>
+      <div class="persona-needs">
+        <div class="need-item">CRM without enterprise complexity or cost</div>
+        <div class="need-item">AI-written outreach that sounds personal</div>
+        <div class="need-item">Weekly content calendar with zero manual effort</div>
+        <div class="need-item">Reminders before clients go cold</div>
+      </div>
+    </div>
+    <div class="persona">
+      <div class="persona-avatar">🎨</div>
+      <div class="persona-name">Creative Freelancers</div>
+      <div class="persona-role">Designers · Photographers · Writers</div>
+      <div class="badge badge-e" style="margin-bottom:12px">Growth Segment</div>
+      <div class="persona-needs">
+        <div class="need-item">Client history & project notes in one place</div>
+        <div class="need-item">Content library of reusable messaging templates</div>
+        <div class="need-item">Structured follow-up workflow after project delivery</div>
+        <div class="need-item">Referral request automation</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════ -->
+<!--  SLIDE 4 — The Solution                                               -->
+<!-- ══════════════════════════════════════════════════════════════════════ -->
+<div class="slide" id="s4">
+  <div class="slide-header">
+    <div class="overline">The Solution</div>
+    <h2 class="gradient-text">Six powerful modules.<br/>One futuristic dashboard.</h2>
+    <p class="sub">Service Business Hub replaces spreadsheets with a real-time AI-assisted workspace — designed for the way service professionals actually work.</p>
+  </div>
+  <div class="g3" style="flex:1;align-content:start">
+    <div class="feat-tile">
+      <div class="feat-ico" style="background:rgba(124,58,237,0.15);border:1px solid rgba(139,92,246,0.25)">📊</div>
+      <div>
+        <div class="feat-name">Live Dashboard</div>
+        <div class="feat-desc">Real-time stats: total clients, overdue follow-ups, draft messages, scheduled content — with contextual alerts.</div>
+      </div>
+    </div>
+    <div class="feat-tile">
+      <div class="feat-ico" style="background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.25)">👥</div>
+      <div>
+        <div class="feat-name">Client Manager</div>
+        <div class="feat-desc">Full CRM with contact details, service type, tags, last-contact tracking, message history and follow-up log per client.</div>
+      </div>
+    </div>
+    <div class="feat-tile">
+      <div class="feat-ico" style="background:rgba(139,92,246,0.12);border:1px solid rgba(139,92,246,0.25)">✨</div>
+      <div>
+        <div class="feat-name">AI Outreach Composer</div>
+        <div class="feat-desc">Generate personalised re-engagement, check-in, upsell, and referral messages. Saves draft + updates last_contact_date automatically.</div>
+      </div>
+    </div>
+    <div class="feat-tile">
+      <div class="feat-ico" style="background:rgba(244,63,94,0.12);border:1px solid rgba(244,63,94,0.25)">🔔</div>
+      <div>
+        <div class="feat-name">Follow-Up System</div>
+        <div class="feat-desc">Set reminders per client. Urgency levels: Overdue / Due Today / Upcoming / Snoozed. Alerts for 30-day inactive clients.</div>
+      </div>
+    </div>
+    <div class="feat-tile">
+      <div class="feat-ico" style="background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.25)">📅</div>
+      <div>
+        <div class="feat-name">Content Calendar</div>
+        <div class="feat-desc">AI-generates LinkedIn, Instagram, Blog & Newsletter posts from a topic + niche input. Schedule with list or weekly calendar view.</div>
+      </div>
+    </div>
+    <div class="feat-tile">
+      <div class="feat-ico" style="background:rgba(14,165,233,0.12);border:1px solid rgba(14,165,233,0.25)">📚</div>
+      <div>
+        <div class="feat-name">Content Library</div>
+        <div class="feat-desc">Save & reuse best-performing templates. Track use counts, edit inline, filter by category. Sorted by performance automatically.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════ -->
+<!--  SLIDE 5 — Live Links & Deployment                                    -->
+<!-- ══════════════════════════════════════════════════════════════════════ -->
+<div class="slide" id="s5">
+  <div class="slide-header">
+    <div class="overline">Deployment</div>
+    <h2 class="gradient-text">Live, public, and auto-deploying<br/>on every GitHub push.</h2>
+    <p class="sub">Every commit to <code style="color:#a78bfa;font-size:0.85em">main</code> triggers an automatic Railway rebuild. Zero-downtime deployments in ~90 seconds.</p>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:14px;flex:1;justify-content:center">
+    <div class="link-card">
+      <div class="link-ico" style="background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.25)">🌐</div>
+      <div style="flex:1">
+        <div class="link-label">Frontend — Live App (Railway)</div>
+        <div class="link-url">https://service-business-hub-production.up.railway.app</div>
+        <div class="link-sub">Next.js 15 · PORT=8080 · Auto-deploy from GitHub main</div>
+      </div>
+      <span class="badge badge-e">Live ✓</span>
+    </div>
+    <div class="link-card">
+      <div class="link-ico" style="background:rgba(124,58,237,0.12);border:1px solid rgba(139,92,246,0.25)">🐙</div>
+      <div style="flex:1">
+        <div class="link-label">GitHub Repository</div>
+        <div class="link-url">https://github.com/Pbhatian/service-business-hub</div>
+        <div class="link-sub">Next.js · TypeScript · Tailwind CSS · Full source code</div>
+      </div>
+      <span class="badge badge-v">Public ✓</span>
+    </div>
+    <div class="link-card">
+      <div class="link-ico" style="background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.25)">🗄</div>
+      <div style="flex:1">
+        <div class="link-label">Backend — Supabase Cloud (PostgreSQL)</div>
+        <div class="link-url">Supabase Hosted · 5 tables · RLS-ready · Realtime-capable</div>
+        <div class="link-sub">NEXT_PUBLIC_SUPABASE_URL + ANON_KEY set as Railway env vars</div>
+      </div>
+      <span class="badge badge-a">Cloud ✓</span>
+    </div>
+    <div class="link-card">
+      <div class="link-ico" style="background:rgba(14,165,233,0.12);border:1px solid rgba(14,165,233,0.25)">🤖</div>
+      <div style="flex:1">
+        <div class="link-label">AI Layer — Ready for Anthropic Claude API</div>
+        <div class="link-url">lib/ai-stub.ts → drop-in replacement for real API calls</div>
+        <div class="link-sub">generateOutreach() · generateWeeklyContent() · same signatures</div>
+      </div>
+      <span class="badge badge-b">Pluggable</span>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════ -->
+<!--  SLIDE 6 — Architecture                                               -->
+<!-- ══════════════════════════════════════════════════════════════════════ -->
+<div class="slide" id="s6">
+  <div class="slide-header">
+    <div class="overline">System Architecture</div>
+    <h2 class="gradient-text">Full-stack serverless architecture<br/>with a clean separation of concerns.</h2>
+  </div>
+  <div style="flex:1;display:flex;flex-direction:column;gap:10px;justify-content:center">
+
+    <div class="arch-layer" style="border-color:rgba(139,92,246,0.22)">
+      <div class="arch-layer-title" style="color:#a78bfa">🖥 Presentation Layer — Browser / Client</div>
+      <div class="arch-chips">
+        <span class="arch-chip" style="color:#a78bfa;border-color:rgba(139,92,246,0.25)">Next.js 15 App Router</span>
+        <span class="arch-chip" style="color:#a78bfa;border-color:rgba(139,92,246,0.25)">React Server &amp; Client Components</span>
+        <span class="arch-chip" style="color:#a78bfa;border-color:rgba(139,92,246,0.25)">TypeScript</span>
+        <span class="arch-chip" style="color:#a78bfa;border-color:rgba(139,92,246,0.25)">Tailwind CSS + shadcn/ui</span>
+        <span class="arch-chip" style="color:#a78bfa;border-color:rgba(139,92,246,0.25)">Dark Glassmorphism Design System</span>
+      </div>
+    </div>
+    <div class="arch-arrow-v">↕</div>
+    <div class="arch-layer" style="border-color:rgba(245,158,11,0.2)">
+      <div class="arch-layer-title" style="color:#fbbf24">🤖 AI Intelligence Layer — lib/ai-stub.ts</div>
+      <div class="arch-chips">
+        <span class="arch-chip" style="color:#fbbf24;border-color:rgba(245,158,11,0.25)">generateOutreach(client, type)</span>
+        <span class="arch-chip" style="color:#fbbf24;border-color:rgba(245,158,11,0.25)">generateWeeklyContent(topic, platform, niche)</span>
+        <span class="arch-chip" style="color:#fbbf24;border-color:rgba(245,158,11,0.25)">→ Anthropic Claude API (plug-in ready)</span>
+      </div>
+    </div>
+    <div class="arch-arrow-v">↕</div>
+    <div class="arch-layer" style="border-color:rgba(16,185,129,0.2)">
+      <div class="arch-layer-title" style="color:#34d399">🗄 Data Layer — lib/db.ts → Supabase</div>
+      <div class="arch-chips">
+        <span class="arch-chip" style="color:#34d399;border-color:rgba(16,185,129,0.25)">@supabase/supabase-js</span>
+        <span class="arch-chip" style="color:#34d399;border-color:rgba(16,185,129,0.25)">PostgreSQL (hosted)</span>
+        <span class="arch-chip" style="color:#34d399;border-color:rgba(16,185,129,0.25)">5 tables · typed queries</span>
+        <span class="arch-chip" style="color:#34d399;border-color:rgba(16,185,129,0.25)">RLS-ready</span>
+        <span class="arch-chip" style="color:#34d399;border-color:rgba(16,185,129,0.25)">Realtime-capable</span>
+      </div>
+    </div>
+    <div class="arch-arrow-v">↕</div>
+    <div class="arch-layer" style="border-color:rgba(14,165,233,0.2)">
+      <div class="arch-layer-title" style="color:#38bdf8">☁️ Hosting — Railway.app (CI/CD)</div>
+      <div class="arch-chips">
+        <span class="arch-chip" style="color:#38bdf8;border-color:rgba(14,165,233,0.25)">GitHub Auto-Deploy on push to main</span>
+        <span class="arch-chip" style="color:#38bdf8;border-color:rgba(14,165,233,0.25)">PORT=8080 env injection</span>
+        <span class="arch-chip" style="color:#38bdf8;border-color:rgba(14,165,233,0.25)">Env vars: SUPABASE_URL + ANON_KEY</span>
+        <span class="arch-chip" style="color:#38bdf8;border-color:rgba(14,165,233,0.25)">Node.js 20 runtime</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════ -->
+<!--  SLIDE 7 — Database Schema                                            -->
+<!-- ══════════════════════════════════════════════════════════════════════ -->
+<div class="slide" id="s7">
+  <div class="slide-header">
+    <div class="overline">Backend · Supabase PostgreSQL</div>
+    <h2 class="gradient-text">5-table relational schema<br/>with typed TypeScript interfaces.</h2>
+  </div>
+  <div style="flex:1;display:grid;grid-template-columns:repeat(3,1fr);gap:12px;align-content:start">
+
+    <div class="db-table">
+      <div class="db-head">👥 clients</div>
+      <div class="db-row"><span class="dc-name">id</span><span class="dc-type">uuid</span><span class="dc-pk">PK</span></div>
+      <div class="db-row"><span class="dc-name">name</span><span class="dc-type">text</span></div>
+      <div class="db-row"><span class="dc-name">email</span><span class="dc-type">text</span></div>
+      <div class="db-row"><span class="dc-name">phone</span><span class="dc-type">text?</span></div>
+      <div class="db-row"><span class="dc-name">company</span><span class="dc-type">text?</span></div>
+      <div class="db-row"><span class="dc-name">service_type</span><span class="dc-type">text?</span></div>
+      <div class="db-row"><span class="dc-name">tags</span><span class="dc-type">text[]</span></div>
+      <div class="db-row"><span class="dc-name">notes</span><span class="dc-type">text</span></div>
+      <div class="db-row"><span class="dc-name">last_contact_date</span><span class="dc-type">date?</span></div>
+      <div class="db-row"><span class="dc-name">created_at</span><span class="dc-type">timestamptz</span></div>
+    </div>
+
+    <div class="db-table">
+      <div class="db-head">💬 message_logs</div>
+      <div class="db-row"><span class="dc-name">id</span><span class="dc-type">uuid</span><span class="dc-pk">PK</span></div>
+      <div class="db-row"><span class="dc-name">client_id</span><span class="dc-type">uuid</span><span class="dc-fk">FK → clients</span></div>
+      <div class="db-row"><span class="dc-name">message_type</span><span class="dc-type">enum</span></div>
+      <div class="db-row"><span class="dc-name" style="font-size:10px">draft_content</span><span class="dc-type">text</span></div>
+      <div class="db-row"><span class="dc-name">sent_status</span><span class="dc-type">enum</span></div>
+      <div class="db-row"><span class="dc-name">created_at</span><span class="dc-type">timestamptz</span></div>
+      <br/>
+      <div class="db-head" style="margin-top:auto">🔔 follow_up_schedule</div>
+      <div class="db-row"><span class="dc-name">id</span><span class="dc-type">uuid</span><span class="dc-pk">PK</span></div>
+      <div class="db-row"><span class="dc-name">client_id</span><span class="dc-type">uuid</span><span class="dc-fk">FK → clients</span></div>
+      <div class="db-row"><span class="dc-name">reminder_date</span><span class="dc-type">date</span></div>
+      <div class="db-row"><span class="dc-name" style="font-size:10px">follow_up_status</span><span class="dc-type">enum</span></div>
+      <div class="db-row"><span class="dc-name">notes</span><span class="dc-type">text?</span></div>
+      <div class="db-row"><span class="dc-name">created_at</span><span class="dc-type">timestamptz</span></div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div class="db-table">
+        <div class="db-head">📅 content_calendar</div>
+        <div class="db-row"><span class="dc-name">id</span><span class="dc-type">uuid</span><span class="dc-pk">PK</span></div>
+        <div class="db-row"><span class="dc-name">post_type</span><span class="dc-type">enum</span></div>
+        <div class="db-row"><span class="dc-name">topic</span><span class="dc-type">text</span></div>
+        <div class="db-row"><span class="dc-name">draft_content</span><span class="dc-type">text</span></div>
+        <div class="db-row"><span class="dc-name">scheduled_date</span><span class="dc-type">date</span></div>
+        <div class="db-row"><span class="dc-name">status</span><span class="dc-type">enum</span></div>
+        <div class="db-row"><span class="dc-name">created_at</span><span class="dc-type">timestamptz</span></div>
+      </div>
+      <div class="db-table">
+        <div class="db-head">📚 content_library</div>
+        <div class="db-row"><span class="dc-name">id</span><span class="dc-type">uuid</span><span class="dc-pk">PK</span></div>
+        <div class="db-row"><span class="dc-name">title</span><span class="dc-type">text</span></div>
+        <div class="db-row"><span class="dc-name">content</span><span class="dc-type">text</span></div>
+        <div class="db-row"><span class="dc-name">category</span><span class="dc-type">enum</span></div>
+        <div class="db-row"><span class="dc-name">tags</span><span class="dc-type">text[]</span></div>
+        <div class="db-row"><span class="dc-name">use_count</span><span class="dc-type">int</span></div>
+        <div class="db-row"><span class="dc-name">performance_notes</span><span class="dc-type">text?</span></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════ -->
+<!--  SLIDE 8 — What Works                                                 -->
+<!-- ══════════════════════════════════════════════════════════════════════ -->
+<div class="slide" id="s8">
+  <div class="slide-header">
+    <div class="overline">Functional Status</div>
+    <h2 class="gradient-text">Everything ships. Every feature<br/>is live and working in production.</h2>
+  </div>
+  <div class="g2" style="flex:1;align-content:start;gap:10px">
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div class="check-item"><span class="check-dot done-dot">✓</span>Live dashboard with real-time stats & dynamic greeting</div>
+      <div class="check-item"><span class="check-dot done-dot">✓</span>Client CRUD — add, view profile, search, filter by tag</div>
+      <div class="check-item"><span class="check-dot done-dot">✓</span>Client profile with message history & follow-up log</div>
+      <div class="check-item"><span class="check-dot done-dot">✓</span>AI Outreach — 5 message types, saves draft + updates last_contact_date</div>
+      <div class="check-item"><span class="check-dot done-dot">✓</span>Follow-up reminders — add, mark done, snooze, urgency levels</div>
+      <div class="check-item"><span class="check-dot done-dot">✓</span>Inactive client alert (30-day threshold, auto-clears when addressed)</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div class="check-item"><span class="check-dot done-dot">✓</span>Content calendar — AI generate, edit, schedule, status workflow</div>
+      <div class="check-item"><span class="check-dot done-dot">✓</span>Calendar view (current week, dynamic) + list view</div>
+      <div class="check-item"><span class="check-dot done-dot">✓</span>Content library — add, copy (tracks use count), inline edit</div>
+      <div class="check-item"><span class="check-dot done-dot">✓</span>Dark glassmorphism UI — consistent design system across all 6 pages</div>
+      <div class="check-item"><span class="check-dot done-dot">✓</span>Supabase persistence — all data survives page reload</div>
+      <div class="check-item"><span class="check-dot done-dot">✓</span>Railway cloud deployment — auto-deploy on every git push</div>
+    </div>
+  </div>
+  <div style="margin-top:16px;padding:14px 20px;background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.18);border-radius:14px;display:flex;align-items:center;gap:12px">
+    <span style="font-size:22px">🟢</span>
+    <span style="font-size:13.5px;color:#64748b">All 6 modules, business logic audit fixes, and dark UI redesign committed and live at <span style="color:#a78bfa;font-family:monospace">service-business-hub-production.up.railway.app</span></span>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════ -->
+<!--  SLIDE 9 — AI Intelligence Layer                                      -->
+<!-- ══════════════════════════════════════════════════════════════════════ -->
+<div class="slide" id="s9">
+  <div class="slide-header">
+    <div class="overline">AI Intelligence Layer</div>
+    <h2 class="gradient-text">Structured for real AI — running smart<br/>templates today, Claude tomorrow.</h2>
+    <p class="sub">The AI layer is fully abstracted behind a clean interface. Swapping the stub for a real Anthropic API call requires changing one file.</p>
+  </div>
+
+  <div style="flex:1;display:grid;grid-template-columns:1fr auto 1fr auto 1fr;align-items:stretch;gap:0">
+    <div class="ai-box">
+      <div class="ai-box-title">📥 Input</div>
+      <div class="ai-step"><strong style="color:#94a3b8">Client context:</strong><br/>name, company, service_type, notes, tags, last_contact_date</div>
+      <div class="ai-step"><strong style="color:#94a3b8">Outreach type:</strong><br/>re-engagement / check-in / upsell / referral / follow-up</div>
+      <div class="ai-step"><strong style="color:#94a3b8">Content input:</strong><br/>topic + platform + niche</div>
+    </div>
+    <div class="ai-arrow">→</div>
+    <div class="ai-box" style="border-color:rgba(245,158,11,0.2);background:rgba(245,158,11,0.04)">
+      <div class="ai-box-title" style="color:#fbbf24">⚡ AI Engine</div>
+      <div class="ai-step"><strong style="color:#fbbf24">lib/ai-stub.ts</strong><br/>generateOutreach(client, type)<br/>→ 1.4s simulated delay</div>
+      <div class="ai-step"><strong style="color:#fbbf24">lib/ai-stub.ts</strong><br/>generateWeeklyContent(topic, platform, niche)<br/>→ 1.8s simulated delay</div>
+      <div class="ai-step" style="background:rgba(245,158,11,0.06);border:1px dashed rgba(245,158,11,0.2);color:#92400e">
+        <strong style="color:#fbbf24">Anthropic Claude API</strong><br/>Plug in ANTHROPIC_API_KEY<br/>— same function signatures
+      </div>
+    </div>
+    <div class="ai-arrow">→</div>
+    <div class="ai-box">
+      <div class="ai-box-title">📤 Output</div>
+      <div class="ai-step"><strong style="color:#94a3b8">Personalised message draft</strong><br/>Editable before sending, saved to message_logs</div>
+      <div class="ai-step"><strong style="color:#94a3b8">last_contact_date updated</strong><br/>Automatic when draft is saved — keeps dashboard accurate</div>
+      <div class="ai-step"><strong style="color:#94a3b8">Platform-specific post</strong><br/>LinkedIn / Instagram / Blog / Newsletter — topic-aware content</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════ -->
+<!--  SLIDE 10 — UI Design System                                          -->
+<!-- ══════════════════════════════════════════════════════════════════════ -->
+<div class="slide" id="s10">
+  <div class="slide-header">
+    <div class="overline">UI / UX Design System</div>
+    <h2 class="gradient-text">Dark glassmorphism meets<br/>futuristic neon — built from scratch.</h2>
+  </div>
+  <div class="g2" style="flex:1;gap:16px;align-content:start">
+    <div>
+      <p style="font-size:11px;font-weight:700;letter-spacing:0.08em;color:#475569;text-transform:uppercase;margin-bottom:10px">Colour Palette</p>
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:16px">
+        <div class="ds-swatch" style="background:rgba(124,58,237,0.7);font-size:10px">#7c3aed<br/>Violet</div>
+        <div class="ds-swatch" style="background:rgba(16,185,129,0.6);font-size:10px">#10b981<br/>Emerald</div>
+        <div class="ds-swatch" style="background:rgba(244,63,94,0.6);font-size:10px">#f43f5e<br/>Rose</div>
+        <div class="ds-swatch" style="background:rgba(245,158,11,0.65);font-size:10px">#f59e0b<br/>Amber</div>
+        <div class="ds-swatch" style="background:rgba(8,11,22,0.95);border:1px solid rgba(255,255,255,0.08);font-size:10px">#080B16<br/>Deep Dark</div>
+      </div>
+      <p style="font-size:11px;font-weight:700;letter-spacing:0.08em;color:#475569;text-transform:uppercase;margin-bottom:10px">CSS Utility Classes (globals.css)</p>
+      <div style="display:flex;flex-direction:column;gap:7px">
+        <div class="ds-component"><span class="dc-name">.glass-card</span> — frosted glass background + blur(20px)</div>
+        <div class="ds-component"><span class="dc-name">.glass-card-hover</span> — glass with violet glow on hover</div>
+        <div class="ds-component"><span class="dc-name">.aurora-bg</span> — deep dark with radial violet gradients</div>
+        <div class="ds-component"><span class="dc-name">.gradient-heading</span> — white→violet gradient text clip</div>
+        <div class="ds-component"><span class="dc-name">.stat-card-violet/rose/amber/emerald</span> — coloured stat tiles</div>
+        <div class="ds-component"><span class="dc-name">.input-dark</span> — dark form inputs with violet focus ring</div>
+        <div class="ds-component"><span class="dc-name">.btn-neon</span> — neon violet glow button</div>
+        <div class="ds-component"><span class="dc-name">.bg-grid-pattern</span> — subtle violet grid overlay</div>
+      </div>
+    </div>
+    <div>
+      <p style="font-size:11px;font-weight:700;letter-spacing:0.08em;color:#475569;text-transform:uppercase;margin-bottom:10px">Design Decisions</p>
+      <div style="display:flex;flex-direction:column;gap:9px">
+        <div class="problem-card pc-v" style="padding:16px">
+          <div class="p-title" style="font-size:13px">Glass-morphism over flat cards</div>
+          <div class="p-body">rgba(255,255,255,0.03) backgrounds + backdrop-filter: blur(20px) creates depth without heavy visuals. Every card feels like frosted glass in a neon-lit space.</div>
+        </div>
+        <div class="problem-card pc-a" style="padding:16px">
+          <div class="p-title" style="font-size:13px">Inline style for glow effects</div>
+          <div class="p-body">Arbitrary Tailwind shadows can be inconsistent across build outputs. All neon glows use inline <code style="color:#fbbf24">style={{ boxShadow: "..." }}</code> for zero-risk rendering.</div>
+        </div>
+        <div class="problem-card pc-b" style="padding:16px">
+          <div class="p-title" style="font-size:13px">Consistent motion language</div>
+          <div class="p-body">hover:scale-[1.02], hover:-translate-y-0.5, and transition-all duration-200/300 across all interactive elements. Feels alive without being distracting.</div>
+        </div>
+        <div class="problem-card pc-r" style="padding:16px">
+          <div class="p-title" style="font-size:13px">rgba badges instead of Tailwind colour classes</div>
+          <div class="p-body">Status badges use inline rgba for both bg and border — fully legible on the dark bg without any dark-mode CSS variables.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════ -->
+<!--  SLIDE 11 — Roadmap                                                   -->
+<!-- ══════════════════════════════════════════════════════════════════════ -->
+<div class="slide" id="s11">
+  <div class="slide-header">
+    <div class="overline">Product Roadmap</div>
+    <h2 class="gradient-text">The foundation is solid.<br/>Here's what comes next.</h2>
+  </div>
+  <div class="g4" style="flex:1;align-content:start;gap:14px">
+    <div class="phase-card">
+      <span class="phase-label phase-live">✅ Live Now</span>
+      <div class="roadmap-feat">Full CRM (6 modules)</div>
+      <div class="roadmap-feat">AI stub outreach (5 types)</div>
+      <div class="roadmap-feat">Content calendar + library</div>
+      <div class="roadmap-feat">Follow-up reminders + alerts</div>
+      <div class="roadmap-feat">Dark glassmorphism UI</div>
+      <div class="roadmap-feat">Railway cloud deployment</div>
+      <div class="roadmap-feat">Business logic audit fixes</div>
+    </div>
+    <div class="phase-card">
+      <span class="phase-label phase-q3">🔶 Phase 2 — Q3 2026</span>
+      <div class="roadmap-feat">Real Claude API integration (Anthropic SDK)</div>
+      <div class="roadmap-feat">Email send from outreach page (SendGrid / Resend)</div>
+      <div class="roadmap-feat">WhatsApp message integration</div>
+      <div class="roadmap-feat">Client inline edit + delete</div>
+      <div class="roadmap-feat">Draft delete & archive</div>
+      <div class="roadmap-feat">Supabase Auth (multi-user)</div>
+    </div>
+    <div class="phase-card">
+      <span class="phase-label phase-q4">🟣 Phase 3 — Q4 2026</span>
+      <div class="roadmap-feat">n8n workflow automation engine</div>
+      <div class="roadmap-feat">Auto-send follow-up emails on schedule</div>
+      <div class="roadmap-feat">Lead scoring algorithm</div>
+      <div class="roadmap-feat">Multi-account (agency tier)</div>
+      <div class="roadmap-feat">Content auto-scheduler (Buffer API)</div>
+      <div class="roadmap-feat">Analytics dashboard (revenue tracking)</div>
+    </div>
+    <div class="phase-card">
+      <span class="phase-label phase-2027">🔵 Vision — 2027</span>
+      <div class="roadmap-feat">Native mobile app (React Native)</div>
+      <div class="roadmap-feat">AI-coached onboarding flow</div>
+      <div class="roadmap-feat">Referral network graph</div>
+      <div class="roadmap-feat">Predictive churn detection</div>
+      <div class="roadmap-feat">White-label SaaS offering</div>
+      <div class="roadmap-feat">Indian SME market launch</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════ -->
+<!--  SLIDE 12 — Thank You                                                 -->
+<!-- ══════════════════════════════════════════════════════════════════════ -->
+<div class="slide" id="s12">
+  <div class="logo-ring" style="width:64px;height:64px;border-radius:20px;font-size:30px">⚡</div>
+  <div class="overline" style="justify-content:center">Capstone Project · Lokesh · 2026</div>
+  <h1 class="gradient-text" style="font-size:clamp(2.5rem,4vw,4rem);text-align:center">Thank you.</h1>
+  <p class="sub" style="text-align:center;margin:16px auto 0;max-width:560px;font-size:1rem">
+    Service Business Hub — an AI-powered CRM for solo service professionals, built with Next.js, Supabase, and a lot of neon violet.
+  </p>
+  <div class="social-row">
+    <a class="social-chip" href="https://service-business-hub-production.up.railway.app" target="_blank">🌐 Live App</a>
+    <a class="social-chip" href="https://github.com/Pbhatian/service-business-hub" target="_blank">🐙 GitHub Repo</a>
+    <span class="social-chip">🗄 Supabase Backend</span>
+    <span class="social-chip">🤖 AI-Ready Architecture</span>
+  </div>
+  <p style="margin-top:32px;font-size:12px;color:#1e293b;text-align:center">Built with Next.js 15 · TypeScript · Tailwind CSS · Supabase · Railway · shadcn/ui</p>
+</div>
+
+</div><!-- /stage -->
+
+<!-- ══════════════════════════════════════════════════════════════════════ -->
+<!--  Navigation                                                            -->
+<!-- ══════════════════════════════════════════════════════════════════════ -->
+<div class="nav">
+  <button class="nav-btn" id="prevBtn" onclick="navigate(-1)">‹</button>
+  <div class="dots" id="dots"></div>
+  <div class="slide-counter" id="counter">1 / 12</div>
+  <button class="nav-btn" id="nextBtn" onclick="navigate(1)">›</button>
+</div>
+
+<script>
+const slides = document.querySelectorAll('.slide');
+const total  = slides.length;
+let current  = 0;
+
+// Build dots
+const dotsEl = document.getElementById('dots');
+for (let i = 0; i < total; i++) {
+  const d = document.createElement('div');
+  d.className = 'dot' + (i === 0 ? ' active' : '');
+  d.onclick = () => goTo(i);
+  dotsEl.appendChild(d);
+}
+
+function goTo(idx) {
+  if (idx < 0 || idx >= total) return;
+  slides[current].classList.remove('active');
+  slides[current].classList.add('exit');
+  const prev = current;
+  setTimeout(() => slides[prev].classList.remove('exit'), 350);
+
+  current = idx;
+  slides[current].classList.add('active');
+
+  // Progress bar
+  document.getElementById('progress').style.width = ((current + 1) / total * 100) + '%';
+  // Counter
+  document.getElementById('counter').textContent = (current + 1) + ' / ' + total;
+  // Dots
+  document.querySelectorAll('.dot').forEach((d, i) => d.classList.toggle('active', i === current));
+}
+
+function navigate(dir) { goTo(current + dir); }
+
+// Keyboard navigation
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') { e.preventDefault(); navigate(1); }
+  if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')                    { e.preventDefault(); navigate(-1); }
+  if (e.key === 'Home') goTo(0);
+  if (e.key === 'End')  goTo(total - 1);
+});
+
+// Touch/swipe support
+let touchStartX = 0;
+document.addEventListener('touchstart',  e => { touchStartX = e.touches[0].clientX; });
+document.addEventListener('touchend',    e => {
+  const dx = e.changedTouches[0].clientX - touchStartX;
+  if (Math.abs(dx) > 50) navigate(dx < 0 ? 1 : -1);
+});
+
+// Init progress
+document.getElementById('progress').style.width = (1 / total * 100) + '%';
+</script>
+</body>
+</html>
