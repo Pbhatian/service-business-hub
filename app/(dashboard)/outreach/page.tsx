@@ -10,13 +10,6 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   MessageSquare,
   Sparkles,
   Copy,
@@ -130,22 +123,21 @@ function OutreachInner() {
                 <label className="text-xs font-medium text-slate-600 mb-1.5 block">
                   Select Client
                 </label>
-                <Select value={selectedClientId} onValueChange={(v) => setSelectedClientId(v ?? "")}>
-                  <SelectTrigger className="bg-white border-slate-200 w-full">
-                    <span className="flex flex-1 text-left text-sm truncate">
-                      {selectedClient
-                        ? `${selectedClient.name}${selectedClient.company ? ` — ${selectedClient.company}` : ""}`
-                        : loadingData ? "Loading clients…" : "Choose a client…"}
-                    </span>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {clients.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {c.name}{c.company ? ` — ${c.company}` : ""}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <select
+                  value={selectedClientId}
+                  onChange={(e) => setSelectedClientId(e.target.value)}
+                  disabled={loadingData}
+                  className="w-full h-9 rounded-lg border border-slate-200 bg-white px-2.5 text-sm text-slate-700 outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <option value="">
+                    {loadingData ? "Loading clients…" : "Choose a client…"}
+                  </option>
+                  {clients.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}{c.company ? ` — ${c.company}` : ""}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               {/* Message type */}
