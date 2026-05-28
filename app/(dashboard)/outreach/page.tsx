@@ -136,13 +136,8 @@ function OutreachInner() {
                   </SelectTrigger>
                   <SelectContent>
                     {clients.map((c) => (
-                      <SelectItem key={c.id} value={c.id} textValue={c.name}>
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium">{c.name}</span>
-                          {c.company && (
-                            <span className="text-slate-400 text-xs">— {c.company}</span>
-                          )}
-                        </div>
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.name}{c.company ? ` — ${c.company}` : ""}
                       </SelectItem>
                     ))}
                   </SelectContent>
