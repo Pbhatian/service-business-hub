@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { mockClients, mockMessageLogs } from "@/lib/mock-data";
+import { getClients, getMessageLogs, insertMessageLog } from "@/lib/db";
 import { generateOutreach } from "@/lib/ai-stub";
 import type { Client, MessageLog } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -40,18 +40,28 @@ function OutreachInner() {
   const searchParams = useSearchParams();
   const preselectedId = searchParams.get("client");
 
+  const [clients, setClients] = useState<Client[]>([]);
+  const [logs, setLogs] = useState<MessageLog[]>([]);
+  const [loadingData, setLoadingData] = useState(true);
+
   const [selectedClientId, setSelectedClientId] = useState(preselectedId ?? "");
   const [messageType, setMessageType] = useState("check-in");
   const [draft, setDraft] = useState("");
   const [loading, setLoading] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [logs, setLogs] = useState<MessageLog[]>(mockMessageLogs);
+  const [saving, setSaving] = useState(false);
 
-  const selectedClient = mockClients.find((c) => c.id === selectedClientId);
+  useEffect(() => {
+    Promise.all([getClients(), getMessageLogs()])
+      .then(([c, l]) => { setClients(c); setLogs(l); })
+      .finally(() => setLoadingData(false));
+  }, []);
 
   useEffect(() => {
     if (preselectedId) setSelectedClientId(preselectedId);
   }, [preselectedId]);
+
+  const selectedClient = clients.find((c) => c.id === selectedClientId);
 
   async function handleGenerate() {
     if (!selectedClient) {
@@ -74,20 +84,24 @@ function OutreachInner() {
     toast.success("Message copied to clipboard!");
   }
 
-  function handleSave() {
+  async function handleSave() {
     if (!draft || !selectedClientId) return;
-    const newLog: MessageLog = {
-      id: `m${Date.now()}`,
-      client_id: selectedClientId,
-      message_type: messageType as MessageLog["message_type"],
-      draft_content: draft,
-      sent_status: "draft",
-      created_at: new Date().toISOString().split("T")[0],
-      client: selectedClient,
-    };
-    setLogs((prev) => [newLog, ...prev]);
-    setSaved(true);
-    toast.success("Draft saved successfully.");
+    setSaving(true);
+    try {
+      const newLog = await insertMessageLog({
+        client_id: selectedClientId,
+        message_type: messageType as MessageLog["message_type"],
+        draft_content: draft,
+        sent_status: "draft",
+      });
+      setLogs((prev) => [{ ...newLog, client: selectedClient }, ...prev]);
+      setSaved(true);
+      toast.success("Draft saved successfully.");
+    } catch {
+      toast.error("Failed to save draft.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -118,10 +132,10 @@ function OutreachInner() {
                 </label>
                 <Select value={selectedClientId} onValueChange={(v) => setSelectedClientId(v ?? "")}>
                   <SelectTrigger className="bg-white border-slate-200">
-                    <SelectValue placeholder="Choose a client…" />
+                    <SelectValue placeholder={loadingData ? "Loading clients…" : "Choose a client…"} />
                   </SelectTrigger>
                   <SelectContent>
-                    {mockClients.map((c) => (
+                    {clients.map((c) => (
                       <SelectItem key={c.id} value={c.id}>
                         <div className="flex items-center gap-2">
                           <span className="font-medium">{c.name}</span>
@@ -179,7 +193,7 @@ function OutreachInner() {
               {/* Generate button */}
               <Button
                 onClick={handleGenerate}
-                disabled={loading || !selectedClientId}
+                disabled={loading || !selectedClientId || loadingData}
                 className="w-full bg-violet-600 hover:bg-violet-700 h-11"
               >
                 {loading ? (
@@ -215,11 +229,13 @@ function OutreachInner() {
                         size="sm"
                         variant="outline"
                         onClick={handleSave}
-                        disabled={saved}
+                        disabled={saved || saving}
                         className={`flex-1 ${saved ? "text-emerald-600 border-emerald-200" : ""}`}
                       >
                         {saved ? (
                           <><CheckCircle className="w-3.5 h-3.5 mr-1.5" /> Saved</>
+                        ) : saving ? (
+                          <><RefreshCw className="w-3.5 h-3.5 mr-1.5 animate-spin" /> Saving…</>
                         ) : (
                           <><Save className="w-3.5 h-3.5 mr-1.5" /> Save Draft</>
                         )}
@@ -252,13 +268,14 @@ function OutreachInner() {
                     setSelectedClientId(log.client_id);
                     setDraft(log.draft_content);
                     setMessageType(log.message_type);
+                    setSaved(false);
                   }}
                 >
                   <div className="flex items-center justify-between mb-1.5">
                     <div className="flex items-center gap-1.5">
                       <User className="w-3 h-3 text-slate-400" />
                       <span className="text-xs font-medium text-slate-700">
-                        {log.client?.name ?? "Unknown"}
+                        {log.client?.name ?? clients.find((c) => c.id === log.client_id)?.name ?? "Unknown"}
                       </span>
                     </div>
                     <Badge variant="secondary" className="text-[10px] bg-amber-50 text-amber-600 border-0">
@@ -273,7 +290,7 @@ function OutreachInner() {
                   </p>
                 </div>
               ))}
-              {logs.filter((l) => l.sent_status === "draft").length === 0 && (
+              {!loadingData && logs.filter((l) => l.sent_status === "draft").length === 0 && (
                 <p className="text-xs text-slate-400 text-center py-6">
                   No drafts yet. Generate your first message!
                 </p>

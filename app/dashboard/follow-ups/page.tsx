@@ -1,12 +1,11 @@
 "use client";
 
-import { useState } from "react";
-import { mockFollowUps, mockClients } from "@/lib/mock-data";
+import { useState, useEffect } from "react";
+import { getFollowUps, getClients, updateFollowUpStatus, insertFollowUp } from "@/lib/db";
 import type { FollowUpSchedule, Client } from "@/types";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import {
   Bell,
   CheckCircle,
@@ -46,36 +45,54 @@ const urgencyConfig = {
 };
 
 export default function FollowUpsPage() {
-  const [items, setItems] = useState<FollowUpSchedule[]>(mockFollowUps);
+  const [items, setItems] = useState<FollowUpSchedule[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
+  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "pending" | "overdue" | "completed">("all");
 
-  function markDone(id: string) {
-    setItems((prev) =>
-      prev.map((f) => (f.id === id ? { ...f, follow_up_status: "completed" } : f))
-    );
-    toast.success("Follow-up marked as completed.");
+  useEffect(() => {
+    Promise.all([getFollowUps(), getClients()])
+      .then(([fu, cl]) => { setItems(fu); setClients(cl); })
+      .finally(() => setLoading(false));
+  }, []);
+
+  async function markDone(id: string) {
+    try {
+      await updateFollowUpStatus(id, "completed");
+      setItems((prev) =>
+        prev.map((f) => (f.id === id ? { ...f, follow_up_status: "completed" } : f))
+      );
+      toast.success("Follow-up marked as completed.");
+    } catch {
+      toast.error("Failed to update follow-up.");
+    }
   }
 
-  function snooze(id: string) {
-    setItems((prev) =>
-      prev.map((f) => (f.id === id ? { ...f, follow_up_status: "snoozed" } : f))
-    );
-    toast("Follow-up snoozed for 7 days.");
+  async function snooze(id: string) {
+    try {
+      await updateFollowUpStatus(id, "snoozed");
+      setItems((prev) =>
+        prev.map((f) => (f.id === id ? { ...f, follow_up_status: "snoozed" } : f))
+      );
+      toast("Follow-up snoozed.");
+    } catch {
+      toast.error("Failed to snooze follow-up.");
+    }
   }
 
-  function addFollowUp(data: { client_id: string; reminder_date: string; notes: string }) {
-    const client = mockClients.find((c) => c.id === data.client_id);
-    const newItem: FollowUpSchedule = {
-      id: `f${Date.now()}`,
-      client_id: data.client_id,
-      reminder_date: data.reminder_date,
-      follow_up_status: "pending",
-      notes: data.notes,
-      created_at: new Date().toISOString().split("T")[0],
-      client,
-    };
-    setItems((prev) => [newItem, ...prev]);
-    toast.success("Follow-up reminder added.");
+  async function addFollowUp(data: { client_id: string; reminder_date: string; notes: string }) {
+    try {
+      const newItem = await insertFollowUp({
+        client_id: data.client_id,
+        reminder_date: data.reminder_date,
+        follow_up_status: "pending",
+        notes: data.notes,
+      });
+      setItems((prev) => [newItem, ...prev]);
+      toast.success("Follow-up reminder added.");
+    } catch {
+      toast.error("Failed to add follow-up.");
+    }
   }
 
   const filtered = items.filter((f) => {
@@ -96,12 +113,12 @@ export default function FollowUpsPage() {
     completed: items.filter((f) => f.follow_up_status === "completed").length,
   };
 
-  // Detect inactive clients not already in follow-ups
+  const today = new Date();
   const followUpClientIds = new Set(items.map((f) => f.client_id));
-  const needsAttention = mockClients.filter((c) => {
+  const needsAttention = clients.filter((c) => {
     if (followUpClientIds.has(c.id)) return false;
     if (!c.last_contact_date) return true;
-    return differenceInDays(new Date("2026-05-28"), parseISO(c.last_contact_date)) >= 30;
+    return differenceInDays(today, parseISO(c.last_contact_date)) >= 30;
   });
 
   return (
@@ -115,11 +132,11 @@ export default function FollowUpsPage() {
             Never miss a client touchpoint again.
           </p>
         </div>
-        <AddFollowUpDialog clients={mockClients} onAdd={addFollowUp} />
+        <AddFollowUpDialog clients={clients} onAdd={addFollowUp} />
       </div>
 
       {/* Inactive client alerts */}
-      {needsAttention.length > 0 && (
+      {!loading && needsAttention.length > 0 && (
         <div className="bg-rose-50 border border-rose-100 rounded-2xl p-4 mb-6">
           <p className="text-sm font-semibold text-rose-700 mb-2 flex items-center gap-2">
             <AlertTriangle className="w-4 h-4" /> {needsAttention.length} client{needsAttention.length > 1 ? "s" : ""} not contacted in 30+ days
@@ -130,7 +147,7 @@ export default function FollowUpsPage() {
                 <span className="text-sm font-medium text-slate-800">{c.name}</span>
                 <span className="text-[11px] text-rose-500">
                   {c.last_contact_date
-                    ? `${differenceInDays(new Date("2026-05-28"), parseISO(c.last_contact_date))}d inactive`
+                    ? `${differenceInDays(today, parseISO(c.last_contact_date))}d inactive`
                     : "Never contacted"}
                 </span>
                 <Link href={`/dashboard/outreach?client=${c.id}`}>
@@ -166,7 +183,13 @@ export default function FollowUpsPage() {
 
       {/* Follow-up list */}
       <div className="space-y-3">
-        {filtered.length === 0 && (
+        {loading && (
+          <div className="text-center py-16 text-slate-400">
+            <div className="w-8 h-8 border-2 border-violet-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+            <p>Loading follow-ups…</p>
+          </div>
+        )}
+        {!loading && filtered.length === 0 && (
           <div className="text-center py-16 text-slate-400">
             <Bell className="w-10 h-10 mx-auto mb-3 opacity-30" />
             <p>No follow-ups in this category.</p>

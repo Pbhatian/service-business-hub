@@ -1,14 +1,13 @@
 "use client";
 
-import { useState } from "react";
-import { mockContentCalendar } from "@/lib/mock-data";
+import { useState, useEffect } from "react";
+import { getContentCalendar, insertContentItem, updateContentItem } from "@/lib/db";
 import { generateWeeklyContent } from "@/lib/ai-stub";
 import type { ContentCalendarItem } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
 import {
   CalendarDays,
   Sparkles,
@@ -22,7 +21,7 @@ import {
   Plus,
   CheckCircle,
 } from "lucide-react";
-import { format, parseISO, startOfWeek, addDays } from "date-fns";
+import { format, parseISO, addDays } from "date-fns";
 import { toast } from "sonner";
 
 const platformIcons: Record<ContentCalendarItem["post_type"], React.ReactNode> = {
@@ -48,7 +47,8 @@ const statusColors: Record<ContentCalendarItem["status"], string> = {
 };
 
 export default function ContentPage() {
-  const [items, setItems] = useState<ContentCalendarItem[]>(mockContentCalendar);
+  const [items, setItems] = useState<ContentCalendarItem[]>([]);
+  const [loading, setLoading] = useState(true);
   const [activeItem, setActiveItem] = useState<ContentCalendarItem | null>(null);
   const [generating, setGenerating] = useState(false);
   const [genTopic, setGenTopic] = useState("");
@@ -56,7 +56,12 @@ export default function ContentPage() {
   const [genNiche, setGenNiche] = useState("solo consulting");
   const [view, setView] = useState<"calendar" | "list">("list");
 
-  // Build a simple weekly view (next 7 days from June 1)
+  useEffect(() => {
+    getContentCalendar()
+      .then(setItems)
+      .finally(() => setLoading(false));
+  }, []);
+
   const weekStart = new Date("2026-06-01");
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
 
@@ -68,36 +73,46 @@ export default function ContentPage() {
     setGenerating(true);
     try {
       const content = await generateWeeklyContent(genTopic, genPlatform, genNiche);
-      const newItem: ContentCalendarItem = {
-        id: `cc${Date.now()}`,
+      const newItem = await insertContentItem({
         post_type: genPlatform,
         draft_content: content,
         topic: genTopic,
         scheduled_date: format(addDays(new Date(), 3), "yyyy-MM-dd"),
         status: "draft",
-        created_at: new Date().toISOString().split("T")[0],
-      };
+      });
       setItems((prev) => [newItem, ...prev]);
       setActiveItem(newItem);
       toast.success("Content generated! Edit and schedule it below.");
+    } catch {
+      toast.error("Failed to save content.");
     } finally {
       setGenerating(false);
     }
   }
 
-  function handleStatusChange(id: string, status: ContentCalendarItem["status"]) {
-    setItems((prev) => prev.map((i) => (i.id === id ? { ...i, status } : i)));
-    if (activeItem?.id === id) setActiveItem((prev) => prev ? { ...prev, status } : null);
-    toast.success(`Status updated to "${status}".`);
+  async function handleStatusChange(id: string, status: ContentCalendarItem["status"]) {
+    try {
+      await updateContentItem(id, { status });
+      setItems((prev) => prev.map((i) => (i.id === id ? { ...i, status } : i)));
+      if (activeItem?.id === id) setActiveItem((prev) => prev ? { ...prev, status } : null);
+      toast.success(`Status updated to "${status}".`);
+    } catch {
+      toast.error("Failed to update status.");
+    }
   }
 
-  function handleSaveEdit(content: string) {
+  async function handleSaveEdit(content: string) {
     if (!activeItem) return;
-    setItems((prev) =>
-      prev.map((i) => (i.id === activeItem.id ? { ...i, draft_content: content } : i))
-    );
-    setActiveItem({ ...activeItem, draft_content: content });
-    toast.success("Draft saved.");
+    try {
+      await updateContentItem(activeItem.id, { draft_content: content });
+      setItems((prev) =>
+        prev.map((i) => (i.id === activeItem.id ? { ...i, draft_content: content } : i))
+      );
+      setActiveItem({ ...activeItem, draft_content: content });
+      toast.success("Draft saved.");
+    } catch {
+      toast.error("Failed to save draft.");
+    }
   }
 
   return (
@@ -231,8 +246,19 @@ export default function ContentPage() {
             <p className="text-xs text-slate-400">{items.length} posts total</p>
           </div>
 
-          {view === "list" ? (
+          {loading ? (
+            <div className="text-center py-16 text-slate-400">
+              <div className="w-8 h-8 border-2 border-violet-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+              <p>Loading content…</p>
+            </div>
+          ) : view === "list" ? (
             <div className="space-y-3">
+              {items.length === 0 && (
+                <div className="text-center py-16 text-slate-400">
+                  <CalendarDays className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                  <p>No content yet. Generate your first post!</p>
+                </div>
+              )}
               {items.map((item) => (
                 <Card
                   key={item.id}

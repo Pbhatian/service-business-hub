@@ -1,13 +1,12 @@
 "use client";
 
-import { useState } from "react";
-import { mockContentLibrary } from "@/lib/mock-data";
+import { useState, useEffect } from "react";
+import { getContentLibrary, insertLibraryItem, updateLibraryItem } from "@/lib/db";
 import type { ContentLibraryItem } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
 import {
   BookOpen,
   Copy,
@@ -38,11 +37,18 @@ const categoryColors: Record<ContentLibraryItem["category"], string> = {
 };
 
 export default function LibraryPage() {
-  const [items, setItems] = useState<ContentLibraryItem[]>(mockContentLibrary);
+  const [items, setItems] = useState<ContentLibraryItem[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filterCat, setFilterCat] = useState<ContentLibraryItem["category"] | "all">("all");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState("");
+
+  useEffect(() => {
+    getContentLibrary()
+      .then(setItems)
+      .finally(() => setLoading(false));
+  }, []);
 
   const filtered = items.filter((item) => {
     const matchSearch =
@@ -53,25 +59,41 @@ export default function LibraryPage() {
     return matchSearch && matchCat;
   });
 
-  function handleCopy(item: ContentLibraryItem) {
+  async function handleCopy(item: ContentLibraryItem) {
     navigator.clipboard.writeText(item.content);
-    setItems((prev) =>
-      prev.map((i) => (i.id === item.id ? { ...i, use_count: i.use_count + 1 } : i))
-    );
+    const newCount = item.use_count + 1;
+    try {
+      await updateLibraryItem(item.id, { use_count: newCount });
+      setItems((prev) =>
+        prev.map((i) => (i.id === item.id ? { ...i, use_count: newCount } : i))
+      );
+    } catch {
+      // copy still succeeded, use_count update failed silently
+    }
     toast.success(`"${item.title}" copied to clipboard!`);
   }
 
-  function handleSaveEdit(id: string) {
-    setItems((prev) =>
-      prev.map((i) => (i.id === id ? { ...i, content: editDraft } : i))
-    );
-    setEditingId(null);
-    toast.success("Template updated.");
+  async function handleSaveEdit(id: string) {
+    try {
+      await updateLibraryItem(id, { content: editDraft });
+      setItems((prev) =>
+        prev.map((i) => (i.id === id ? { ...i, content: editDraft } : i))
+      );
+      setEditingId(null);
+      toast.success("Template updated.");
+    } catch {
+      toast.error("Failed to save changes.");
+    }
   }
 
-  function handleAdd(item: ContentLibraryItem) {
-    setItems((prev) => [item, ...prev]);
-    toast.success("Template added to library.");
+  async function handleAdd(item: Omit<ContentLibraryItem, "id" | "created_at">) {
+    try {
+      const newItem = await insertLibraryItem(item);
+      setItems((prev) => [newItem, ...prev]);
+      toast.success("Template added to library.");
+    } catch {
+      toast.error("Failed to add template.");
+    }
   }
 
   const sortedFiltered = [...filtered].sort((a, b) => b.use_count - a.use_count);
@@ -141,10 +163,15 @@ export default function LibraryPage() {
       </div>
 
       {/* Items */}
-      {sortedFiltered.length === 0 ? (
+      {loading ? (
+        <div className="text-center py-20 text-slate-400">
+          <div className="w-8 h-8 border-2 border-violet-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+          <p>Loading library…</p>
+        </div>
+      ) : sortedFiltered.length === 0 ? (
         <div className="text-center py-20 text-slate-400">
           <BookOpen className="w-10 h-10 mx-auto mb-3 opacity-30" />
-          <p>No templates found. Add your first one!</p>
+          <p>{items.length === 0 ? "No templates yet. Add your first one!" : "No templates found."}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -245,7 +272,11 @@ export default function LibraryPage() {
   );
 }
 
-function AddLibraryItemDialog({ onAdd }: { onAdd: (item: ContentLibraryItem) => void }) {
+function AddLibraryItemDialog({
+  onAdd,
+}: {
+  onAdd: (item: Omit<ContentLibraryItem, "id" | "created_at">) => void;
+}) {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
     title: "",
@@ -259,14 +290,12 @@ function AddLibraryItemDialog({ onAdd }: { onAdd: (item: ContentLibraryItem) => 
     e.preventDefault();
     if (!form.title || !form.content) return;
     onAdd({
-      id: `l${Date.now()}`,
       title: form.title,
       content: form.content,
       category: form.category,
       tags: form.tags.split(",").map((t) => t.trim()).filter(Boolean),
       performance_notes: form.performance_notes || undefined,
       use_count: 0,
-      created_at: new Date().toISOString().split("T")[0],
     });
     setOpen(false);
     setForm({ title: "", content: "", category: "outreach", tags: "", performance_notes: "" });

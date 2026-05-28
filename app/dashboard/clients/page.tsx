@@ -1,16 +1,14 @@
-﻿"use client";
+"use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { mockClients } from "@/lib/mock-data";
+import { getClients } from "@/lib/db";
 import type { Client, ClientTag } from "@/types";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Search,
-  Plus,
   Users,
   Mail,
   Phone,
@@ -34,13 +32,20 @@ const tagColors: Record<ClientTag, string> = {
 
 function daysSinceContact(client: Client) {
   if (!client.last_contact_date) return null;
-  return differenceInDays(new Date("2026-05-28"), parseISO(client.last_contact_date));
+  return differenceInDays(new Date(), parseISO(client.last_contact_date));
 }
 
 export default function ClientsPage() {
   const [search, setSearch] = useState("");
   const [filterTag, setFilterTag] = useState<ClientTag | "all">("all");
-  const [clients, setClients] = useState<Client[]>(mockClients);
+  const [clients, setClients] = useState<Client[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    getClients()
+      .then(setClients)
+      .finally(() => setLoading(false));
+  }, []);
 
   const filtered = clients.filter((c) => {
     const matchSearch =
@@ -102,11 +107,16 @@ export default function ClientsPage() {
         </div>
       </div>
 
-      {/* Client cards */}
-      {filtered.length === 0 ? (
+      {/* Loading state */}
+      {loading ? (
+        <div className="text-center py-20 text-slate-400">
+          <div className="w-8 h-8 border-2 border-violet-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+          <p>Loading clients…</p>
+        </div>
+      ) : filtered.length === 0 ? (
         <div className="text-center py-20 text-slate-400">
           <Users className="w-10 h-10 mx-auto mb-3 opacity-30" />
-          <p>No clients match your search.</p>
+          <p>{clients.length === 0 ? "No clients yet. Add your first one!" : "No clients match your search."}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -170,4 +180,3 @@ export default function ClientsPage() {
     </div>
   );
 }
-

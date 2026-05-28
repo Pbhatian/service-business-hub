@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Plus } from "lucide-react";
 import type { Client, ClientTag } from "@/types";
+import { insertClient } from "@/lib/db";
 import { toast } from "sonner";
 
 interface Props {
@@ -15,6 +16,7 @@ interface Props {
 
 export function AddClientDialog({ onAdd }: Props) {
   const [open, setOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -25,7 +27,7 @@ export function AddClientDialog({ onAdd }: Props) {
     tags: "" as string,
   });
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!form.name || !form.email) return;
 
@@ -34,23 +36,27 @@ export function AddClientDialog({ onAdd }: Props) {
       .map((t) => t.trim().toLowerCase())
       .filter(Boolean) as ClientTag[];
 
-    const newClient: Client = {
-      id: `c${Date.now()}`,
-      name: form.name,
-      email: form.email,
-      phone: form.phone || undefined,
-      company: form.company || undefined,
-      service_type: form.service_type || undefined,
-      notes: form.notes,
-      tags: rawTags.length ? rawTags : ["new"],
-      last_contact_date: null,
-      created_at: new Date().toISOString().split("T")[0],
-    };
-
-    onAdd(newClient);
-    toast.success(`${newClient.name} added to your client list.`);
-    setOpen(false);
-    setForm({ name: "", email: "", phone: "", company: "", service_type: "", notes: "", tags: "" });
+    setSaving(true);
+    try {
+      const newClient = await insertClient({
+        name: form.name,
+        email: form.email,
+        phone: form.phone || undefined,
+        company: form.company || undefined,
+        service_type: form.service_type || undefined,
+        notes: form.notes,
+        tags: rawTags.length ? rawTags : ["new"],
+        last_contact_date: null,
+      });
+      onAdd(newClient);
+      toast.success(`${newClient.name} added to your client list.`);
+      setOpen(false);
+      setForm({ name: "", email: "", phone: "", company: "", service_type: "", notes: "", tags: "" });
+    } catch {
+      toast.error("Failed to add client. Please try again.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -132,8 +138,8 @@ export function AddClientDialog({ onAdd }: Props) {
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
               Cancel
             </Button>
-            <Button type="submit" className="bg-violet-600 hover:bg-violet-700">
-              Add Client
+            <Button type="submit" disabled={saving} className="bg-violet-600 hover:bg-violet-700">
+              {saving ? "Saving…" : "Add Client"}
             </Button>
           </div>
         </form>

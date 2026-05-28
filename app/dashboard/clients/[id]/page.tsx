@@ -1,9 +1,6 @@
-"use client";
-
-import { use } from "react";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { mockClients, mockMessageLogs, mockFollowUps } from "@/lib/mock-data";
+import { getClientById, getMessageLogsByClientId, getFollowUpsByClientId } from "@/lib/db";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -33,19 +30,23 @@ const tagColors: Record<ClientTag, string> = {
   churned: "bg-slate-100 text-slate-500",
 };
 
-export default function ClientProfilePage({
+export default async function ClientProfilePage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const { id } = use(params);
-  const client = mockClients.find((c) => c.id === id);
+  const { id } = await params;
+
+  const [client, messages, followUps] = await Promise.all([
+    getClientById(id),
+    getMessageLogsByClientId(id),
+    getFollowUpsByClientId(id),
+  ]);
+
   if (!client) notFound();
 
-  const messages = mockMessageLogs.filter((m) => m.client_id === id);
-  const followUps = mockFollowUps.filter((f) => f.client_id === id);
   const days = client.last_contact_date
-    ? differenceInDays(new Date("2026-05-28"), parseISO(client.last_contact_date))
+    ? differenceInDays(new Date(), parseISO(client.last_contact_date))
     : null;
 
   return (
