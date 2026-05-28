@@ -1,6 +1,4 @@
-import { Users, MessageSquare, Bell, CalendarDays, TrendingUp, Clock, Zap, ArrowRight } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Users, MessageSquare, Bell, CalendarDays, TrendingUp, Clock, Zap, ArrowRight, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { getClients, getFollowUps, getMessageLogs, getContentCalendar } from "@/lib/db";
 import { differenceInDays, format, parseISO } from "date-fns";
@@ -34,8 +32,9 @@ export default async function DashboardPage() {
       value: clients.length,
       sub: `${clients.filter((c) => c.tags.includes("active")).length} active`,
       icon: Users,
-      color: "text-violet-600",
-      bg: "bg-violet-50",
+      cardClass: "stat-card-violet",
+      iconColor: "text-violet-400",
+      glowColor: "rgba(139,92,246,0.3)",
       href: "/dashboard/clients",
     },
     {
@@ -43,8 +42,9 @@ export default async function DashboardPage() {
       value: overdueFollowUps.length,
       sub: "Need attention",
       icon: Bell,
-      color: "text-rose-600",
-      bg: "bg-rose-50",
+      cardClass: "stat-card-rose",
+      iconColor: "text-rose-400",
+      glowColor: "rgba(244,63,94,0.3)",
       href: "/dashboard/follow-ups",
     },
     {
@@ -52,8 +52,9 @@ export default async function DashboardPage() {
       value: drafts.length,
       sub: "Ready to send",
       icon: MessageSquare,
-      color: "text-amber-600",
-      bg: "bg-amber-50",
+      cardClass: "stat-card-amber",
+      iconColor: "text-amber-400",
+      glowColor: "rgba(245,158,11,0.3)",
       href: "/dashboard/outreach",
     },
     {
@@ -61,79 +62,104 @@ export default async function DashboardPage() {
       value: scheduledContent.length,
       sub: "Content queued",
       icon: CalendarDays,
-      color: "text-emerald-600",
-      bg: "bg-emerald-50",
+      cardClass: "stat-card-emerald",
+      iconColor: "text-emerald-400",
+      glowColor: "rgba(16,185,129,0.3)",
       href: "/dashboard/content",
     },
   ];
 
+  const hour = today.getHours();
+  const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+
   return (
-    <div className="p-8">
+    <div className="p-8 max-w-7xl">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-slate-900">Good morning 👋</h1>
-        <p className="text-slate-500 mt-1">
-          Here&apos;s your business overview for{" "}
-          {format(today, "MMMM d, yyyy")}
+        <div className="flex items-center gap-2 mb-1">
+          <Sparkles className="w-5 h-5 text-violet-400" style={{ filter: "drop-shadow(0 0 6px rgba(167,139,250,0.8))" }} />
+          <span className="text-xs font-medium tracking-widest uppercase text-violet-400/80">AI-Powered Dashboard</span>
+        </div>
+        <h1 className="text-3xl font-bold gradient-heading mb-1">
+          {greeting} 👋
+        </h1>
+        <p className="text-slate-400 text-sm">
+          Business overview for{" "}
+          <span className="text-slate-300 font-medium">{format(today, "MMMM d, yyyy")}</span>
         </p>
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {stats.map((s) => (
           <Link key={s.title} href={s.href}>
-            <Card className="hover:shadow-md transition-shadow cursor-pointer border-0 shadow-sm">
-              <CardContent className="p-5">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-sm text-slate-500 font-medium">{s.title}</p>
-                    <p className="text-3xl font-bold text-slate-900 mt-1">{s.value}</p>
-                    <p className="text-xs text-slate-400 mt-1">{s.sub}</p>
-                  </div>
-                  <div className={`${s.bg} p-2.5 rounded-xl`}>
-                    <s.icon className={`w-5 h-5 ${s.color}`} />
-                  </div>
+            <div
+              className={`${s.cardClass} rounded-2xl p-5 cursor-pointer transition-all duration-300 hover:scale-[1.02] group`}
+              style={{ backdropFilter: "blur(12px)" }}
+            >
+              <div className="flex items-start justify-between mb-3">
+                <div
+                  className="w-10 h-10 rounded-xl flex items-center justify-center"
+                  style={{
+                    background: `radial-gradient(circle, ${s.glowColor} 0%, transparent 70%)`,
+                    border: `1px solid ${s.glowColor}`,
+                  }}
+                >
+                  <s.icon className={`w-5 h-5 ${s.iconColor}`} />
                 </div>
-              </CardContent>
-            </Card>
+                <ArrowRight className="w-4 h-4 text-slate-600 group-hover:text-slate-400 transition-colors" />
+              </div>
+              <p className="text-3xl font-bold text-white mb-0.5">{s.value}</p>
+              <p className="text-xs font-semibold text-slate-300">{s.title}</p>
+              <p className="text-[11px] text-slate-500 mt-0.5">{s.sub}</p>
+            </div>
           </Link>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Inactive clients alert */}
-        <Card className="border-0 shadow-sm">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-semibold text-slate-700 flex items-center gap-2">
-                <Clock className="w-4 h-4 text-rose-500" />
-                Clients Needing Attention
-              </CardTitle>
-              <Link href="/dashboard/clients">
-                <Button variant="ghost" size="sm" className="text-xs text-violet-600 h-7">
-                  View all <ArrowRight className="w-3 h-3 ml-1" />
-                </Button>
-              </Link>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        {/* Inactive clients */}
+        <div className="glass-card rounded-2xl overflow-hidden">
+          <div className="flex items-center justify-between px-5 pt-5 pb-4" style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+            <div className="flex items-center gap-2">
+              <Clock className="w-4 h-4 text-rose-400" style={{ filter: "drop-shadow(0 0 4px rgba(244,63,94,0.6))" }} />
+              <span className="text-sm font-semibold text-slate-200">Clients Needing Attention</span>
             </div>
-          </CardHeader>
-          <CardContent className="space-y-3">
+            <Link href="/dashboard/clients">
+              <button className="flex items-center gap-1 text-xs text-violet-400 hover:text-violet-300 transition-colors">
+                View all <ArrowRight className="w-3 h-3" />
+              </button>
+            </Link>
+          </div>
+          <div className="px-5 py-3 space-y-1">
             {inactiveClients.slice(0, 4).map((client) => {
               const days = client.last_contact_date
                 ? differenceInDays(today, parseISO(client.last_contact_date))
                 : null;
               return (
                 <Link key={client.id} href={`/dashboard/clients/${client.id}`}>
-                  <div className="flex items-center justify-between py-2 hover:bg-slate-50 rounded-lg px-2 -mx-2 transition-colors">
+                  <div className="flex items-center justify-between py-2.5 px-3 -mx-3 rounded-xl transition-all duration-200 hover:bg-white/[0.04] group cursor-pointer">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-sm font-semibold text-slate-600">
+                      <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold text-white shrink-0"
+                        style={{
+                          background: "linear-gradient(135deg, #7c3aed, #4f46e5)",
+                          boxShadow: "0 0 8px rgba(124,58,237,0.4)",
+                        }}
+                      >
                         {client.name[0]}
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-slate-800">{client.name}</p>
-                        <p className="text-xs text-slate-400">{client.service_type ?? "—"}</p>
+                        <p className="text-sm font-medium text-slate-200 group-hover:text-white transition-colors">{client.name}</p>
+                        <p className="text-xs text-slate-500">{client.service_type ?? "—"}</p>
                       </div>
                     </div>
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-50 text-rose-600 font-medium">
+                    <span className="text-[10px] px-2.5 py-1 rounded-full font-semibold"
+                      style={{
+                        background: "rgba(244,63,94,0.12)",
+                        border: "1px solid rgba(244,63,94,0.3)",
+                        color: "#fb7185",
+                      }}
+                    >
                       {days !== null ? `${days}d ago` : "No contact"}
                     </span>
                   </div>
@@ -141,49 +167,49 @@ export default async function DashboardPage() {
               );
             })}
             {inactiveClients.length === 0 && (
-              <p className="text-sm text-slate-400 text-center py-4">All clients are up to date ✅</p>
+              <p className="text-sm text-slate-500 text-center py-5">All clients are up to date ✅</p>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* Upcoming follow-ups */}
-        <Card className="border-0 shadow-sm">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-semibold text-slate-700 flex items-center gap-2">
-                <TrendingUp className="w-4 h-4 text-violet-500" />
-                Upcoming Follow-Ups
-              </CardTitle>
-              <Link href="/dashboard/follow-ups">
-                <Button variant="ghost" size="sm" className="text-xs text-violet-600 h-7">
-                  View all <ArrowRight className="w-3 h-3 ml-1" />
-                </Button>
-              </Link>
+        <div className="glass-card rounded-2xl overflow-hidden">
+          <div className="flex items-center justify-between px-5 pt-5 pb-4" style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+            <div className="flex items-center gap-2">
+              <TrendingUp className="w-4 h-4 text-violet-400" style={{ filter: "drop-shadow(0 0 4px rgba(167,139,250,0.6))" }} />
+              <span className="text-sm font-semibold text-slate-200">Upcoming Follow-Ups</span>
             </div>
-          </CardHeader>
-          <CardContent className="space-y-3">
+            <Link href="/dashboard/follow-ups">
+              <button className="flex items-center gap-1 text-xs text-violet-400 hover:text-violet-300 transition-colors">
+                View all <ArrowRight className="w-3 h-3" />
+              </button>
+            </Link>
+          </div>
+          <div className="px-5 py-3 space-y-1">
             {followUps.filter((f) => f.follow_up_status !== "completed").slice(0, 4).map((fu) => {
-              const isOverdue =
-                parseISO(fu.reminder_date) <= today && fu.follow_up_status === "pending";
+              const isOverdue = parseISO(fu.reminder_date) <= today && fu.follow_up_status === "pending";
               return (
-                <div key={fu.id} className="flex items-center justify-between py-2 px-2 -mx-2 rounded-lg">
+                <div key={fu.id} className="flex items-center justify-between py-2.5 px-3 -mx-3 rounded-xl hover:bg-white/[0.04] transition-all">
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-sm font-semibold text-slate-600">
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold text-white shrink-0"
+                      style={{ background: "linear-gradient(135deg, #6d28d9, #5b21b6)", boxShadow: "0 0 8px rgba(109,40,217,0.4)" }}
+                    >
                       {fu.client?.name[0]}
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-slate-800">{fu.client?.name}</p>
-                      <p className="text-xs text-slate-400 truncate max-w-[200px]">{fu.notes}</p>
+                      <p className="text-sm font-medium text-slate-200">{fu.client?.name}</p>
+                      <p className="text-xs text-slate-500 truncate max-w-[180px]">{fu.notes}</p>
                     </div>
                   </div>
                   <span
-                    className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
+                    className="text-[10px] px-2.5 py-1 rounded-full font-semibold"
+                    style={
                       isOverdue
-                        ? "bg-rose-50 text-rose-600"
+                        ? { background: "rgba(244,63,94,0.12)", border: "1px solid rgba(244,63,94,0.3)", color: "#fb7185" }
                         : fu.follow_up_status === "snoozed"
-                        ? "bg-amber-50 text-amber-600"
-                        : "bg-violet-50 text-violet-600"
-                    }`}
+                        ? { background: "rgba(245,158,11,0.12)", border: "1px solid rgba(245,158,11,0.3)", color: "#fbbf24" }
+                        : { background: "rgba(139,92,246,0.12)", border: "1px solid rgba(139,92,246,0.3)", color: "#a78bfa" }
+                    }
                   >
                     {format(parseISO(fu.reminder_date), "MMM d")}
                   </span>
@@ -191,38 +217,41 @@ export default async function DashboardPage() {
               );
             })}
             {followUps.filter((f) => f.follow_up_status !== "completed").length === 0 && (
-              <p className="text-sm text-slate-400 text-center py-4">No upcoming follow-ups ✅</p>
+              <p className="text-sm text-slate-500 text-center py-5">No upcoming follow-ups ✅</p>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* Quick actions */}
-        <Card className="border-0 shadow-sm lg:col-span-2">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-semibold text-slate-700 flex items-center gap-2">
-              <Zap className="w-4 h-4 text-amber-500" />
-              Quick Actions
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+        <div className="glass-card rounded-2xl overflow-hidden lg:col-span-2">
+          <div className="flex items-center gap-2 px-5 pt-5 pb-4" style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+            <Zap className="w-4 h-4 text-amber-400" style={{ filter: "drop-shadow(0 0 4px rgba(245,158,11,0.6))" }} />
+            <span className="text-sm font-semibold text-slate-200">Quick Actions</span>
+          </div>
+          <div className="p-5">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {[
-                { label: "Add New Client", href: "/dashboard/clients", color: "bg-violet-600 hover:bg-violet-700" },
-                { label: "Generate Outreach", href: "/dashboard/outreach", color: "bg-emerald-600 hover:bg-emerald-700" },
-                { label: "Create Content", href: "/dashboard/content", color: "bg-amber-600 hover:bg-amber-700" },
-                { label: "View Library", href: "/dashboard/library", color: "bg-slate-700 hover:bg-slate-800" },
+                { label: "Add New Client", href: "/dashboard/clients", color: "rgba(124,58,237,0.8)", glow: "rgba(124,58,237,0.4)" },
+                { label: "Generate Outreach", href: "/dashboard/outreach", color: "rgba(16,185,129,0.8)", glow: "rgba(16,185,129,0.3)" },
+                { label: "Create Content", href: "/dashboard/content", color: "rgba(245,158,11,0.8)", glow: "rgba(245,158,11,0.3)" },
+                { label: "View Library", href: "/dashboard/library", color: "rgba(99,102,241,0.8)", glow: "rgba(99,102,241,0.3)" },
               ].map((action) => (
                 <Link key={action.label} href={action.href}>
                   <button
-                    className={`w-full text-white text-sm font-medium py-3 px-4 rounded-xl transition-colors ${action.color}`}
+                    className="w-full text-white text-sm font-semibold py-3.5 px-4 rounded-xl transition-all duration-200 hover:scale-[1.03] hover:-translate-y-0.5"
+                    style={{
+                      background: `linear-gradient(135deg, ${action.color}, ${action.color.replace("0.8", "0.6")})`,
+                      boxShadow: `0 0 16px ${action.glow}, 0 4px 12px rgba(0,0,0,0.3)`,
+                      border: `1px solid ${action.glow}`,
+                    }}
                   >
                     {action.label}
                   </button>
                 </Link>
               ))}
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     </div>
   );
