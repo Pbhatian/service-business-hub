@@ -1,6 +1,11 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getClientById, getMessageLogsByClientId, getFollowUpsByClientId } from "@/lib/db";
+import type { Client, MessageLog, FollowUpSchedule, ClientTag } from "@/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,7 +21,6 @@ import {
   FileText,
 } from "lucide-react";
 import { format, parseISO, differenceInDays } from "date-fns";
-import type { ClientTag } from "@/types";
 
 const tagColors: Record<ClientTag, string> = {
   "high-value": "bg-amber-50 text-amber-700",
@@ -30,20 +34,52 @@ const tagColors: Record<ClientTag, string> = {
   churned: "bg-slate-100 text-slate-500",
 };
 
-export default async function ClientProfilePage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = await params;
+export default function ClientProfilePage() {
+  const params = useParams();
+  const id = params.id as string;
 
-  const [client, messages, followUps] = await Promise.all([
-    getClientById(id),
-    getMessageLogsByClientId(id),
-    getFollowUpsByClientId(id),
-  ]);
+  const [client, setClient] = useState<Client | null>(null);
+  const [messages, setMessages] = useState<MessageLog[]>([]);
+  const [followUps, setFollowUps] = useState<FollowUpSchedule[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [notFoundState, setNotFoundState] = useState(false);
 
-  if (!client) notFound();
+  useEffect(() => {
+    if (!id) return;
+    Promise.all([
+      getClientById(id),
+      getMessageLogsByClientId(id),
+      getFollowUpsByClientId(id),
+    ]).then(([c, msgs, fus]) => {
+      if (!c) {
+        setNotFoundState(true);
+      } else {
+        setClient(c);
+        setMessages(msgs);
+        setFollowUps(fus);
+      }
+    }).finally(() => setLoading(false));
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="p-8 text-center py-20 text-slate-400">
+        <div className="w-8 h-8 border-2 border-violet-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+        <p>Loading client profile…</p>
+      </div>
+    );
+  }
+
+  if (notFoundState || !client) {
+    return (
+      <div className="p-8 text-center py-20 text-slate-400">
+        <p className="text-lg font-semibold text-slate-700">Client not found</p>
+        <Link href="/dashboard/clients">
+          <Button variant="outline" className="mt-4">← Back to Clients</Button>
+        </Link>
+      </div>
+    );
+  }
 
   const days = client.last_contact_date
     ? differenceInDays(new Date(), parseISO(client.last_contact_date))
@@ -73,7 +109,7 @@ export default async function ClientProfilePage({
               {client.tags.map((tag) => (
                 <span
                   key={tag}
-                  className={`text-xs px-2.5 py-1 rounded-full font-medium ${tagColors[tag]}`}
+                  className={`text-xs px-2.5 py-1 rounded-full font-medium ${tagColors[tag] ?? "bg-slate-100 text-slate-600"}`}
                 >
                   {tag}
                 </span>
