@@ -89,12 +89,14 @@ export async function generateWeeklyContent(
 ): Promise<string> {
   await delay(1800);
 
+  const t = topic || "growing your business";
+
   const content: Record<string, string> = {
-    linkedin: `Here's something most ${niche} professionals don't talk about:
+    linkedin: `Here's something most ${niche} professionals don't talk about when it comes to ${t}:
 
-The best clients don't come from cold outreach. They come from *consistency*.
+The best results don't come from rushing. They come from *consistency*.
 
-I've seen it happen dozens of times — the provider who shows up every week with genuine value wins the relationship long before they send a single proposal.
+I've seen it happen dozens of times — the provider who shows up every week with genuine value on ${t} wins the relationship long before they send a single proposal.
 
 Here's the framework I share with every client:
 
@@ -102,70 +104,79 @@ Here's the framework I share with every client:
 → Be valuable (give before you ask)
 → Be personal (people buy from people they trust)
 
-The compound effect of this? Remarkable. 3 months in, you're not pitching — you're responding to inbound.
+When applied to ${t}, the compound effect is remarkable. 3 months in, you're not pitching — you're responding to inbound.
 
-What's one thing you've done this week to add value to your network?
+What's your experience with ${t}? Drop a comment below.
 
-#${niche.replace(/\s/g, "")} #BusinessGrowth #ClientAcquisition #SoloPreneur`,
+#${niche.replace(/\s/g, "")} #${t.split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join("")} #BusinessGrowth #ClientAcquisition`,
 
-    instagram: `The #1 thing I wish I knew earlier as a ${niche} professional 👇
+    instagram: `The truth about ${t} that nobody tells ${niche} professionals 👇
 
-It's not about posting more. It's about posting with *purpose*.
+It's not about doing more. It's about doing it with *purpose*.
 
-Every caption should do ONE of these:
-✅ Educate
-✅ Entertain
-✅ Inspire
-✅ Convert
+Every move you make around ${t} should do ONE of these:
+✅ Educate your audience
+✅ Solve a real problem
+✅ Build genuine trust
+✅ Drive the next step
 
-Pick one. Write with that goal. Watch your engagement change.
+Pick one intention. Execute with clarity. Watch everything change.
 
-Save this for next time you're staring at a blank post. 💾
+Save this for the next time you're stuck on ${t}. 💾
 
-Which type of content works best for YOUR audience? Drop a comment 👇
+What's your biggest challenge with ${t}? Drop a comment 👇
 
-#ContentStrategy #${niche.replace(/\s/g, "")} #SocialMediaTips #BusinessOwner #ContentCreator`,
+#${t.split(" ").join("")} #${niche.replace(/\s/g, "")} #ContentStrategy #BusinessOwner`,
 
-    blog: `# The ${niche} Guide to Getting More Clients Without Cold Calling
+    blog: `# The ${niche} Guide to ${t.charAt(0).toUpperCase() + t.slice(1)}
 
-Let's be honest — nobody enjoys cold outreach.
+Let's be honest — most advice on ${t} is either too vague or too complex.
 
-The good news? You don't have to rely on it.
+In this post, I'm breaking down the exact approach that's helped ${niche} professionals see real, measurable results from ${t} — without the guesswork.
 
-In this post, I'm breaking down the exact strategy that's helped ${niche} professionals go from feast-or-famine to consistent, predictable revenue — without sending a single cold message.
+## Why ${t} Matters More Than You Think
 
-## 1. Build Your Visibility Engine
+Most solo providers underestimate the impact of ${t} on their bottom line. The data tells a different story...
 
-The clients who find you are 5x more likely to convert than the ones you chase. Start by...
+## The Three-Step Framework
 
-## 2. Create Content That Attracts
+After working with dozens of ${niche} clients on ${t}, here's what consistently works:
 
-Your ideal client is searching for answers to the exact problems you solve. If you're not creating content around those problems...
+**Step 1: Audit what you're currently doing**
+Before optimizing ${t}, you need a clear baseline...
 
-## 3. Activate Your Warm Network
+**Step 2: Focus on the highest-leverage activity**
+Not all ${t} strategies are equal. The 20% that drives 80% of results...
 
-Most solo providers are sitting on a goldmine of warm relationships they've never properly nurtured...`,
+**Step 3: Build a repeatable system**
+The goal with ${t} isn't a one-time win — it's compounding momentum...
 
-    newsletter: `Subject: The one thing I changed that doubled my client referrals 📬
+## Final Thoughts
+
+${t.charAt(0).toUpperCase() + t.slice(1)} isn't a destination. It's a practice. Start small, stay consistent, and the results will follow.`,
+
+    newsletter: `Subject: What I've learned about ${t} this year 📬
 
 Hi [First Name],
 
-Real talk this month: I almost burned out last year.
+This month I want to get real about something: ${t}.
 
-Too many tools. Too many tabs. Too much administrative noise eating into my actual work.
+It's one of the most talked-about topics in the ${niche} world — and also one of the most misunderstood.
 
-Sound familiar?
+Here's what I've actually seen work (and what wastes your time):
 
-Here's what changed everything: I started treating my client relationships like I treat my best friendships — with intentionality and consistency.
+**What works:** Starting with a clear goal for ${t}, building a simple repeatable system, and measuring what matters.
 
-This month I want to share the three practices that transformed my retention rate and, unexpectedly, tripled my referrals.
+**What doesn't:** Chasing every new tactic, copying competitors, and trying to do too much at once.
+
+This month's deep dive covers the three shifts that made the biggest difference in my approach to ${t} — and how you can apply them this week.
 
 [Read the full breakdown →]
 
 Until next month,
 [Your Name]
 
-P.S. — If this resonated, reply and tell me your biggest client management challenge. I read every response.`,
+P.S. — What's your current approach to ${t}? Hit reply — I read every response.`,
   };
 
   return content[platform.toLowerCase()] ?? content["linkedin"];

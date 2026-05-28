@@ -18,7 +18,7 @@ export interface Client {
 export interface MessageLog {
   id: string;
   client_id: string;
-  message_type: "outreach" | "follow-up" | "check-in" | "upsell" | "referral";
+  message_type: "outreach" | "re-engagement" | "follow-up" | "check-in" | "upsell" | "referral";
   draft_content: string;
   sent_status: "draft" | "sent" | "scheduled";
   created_at: string;

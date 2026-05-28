@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { getClients, getMessageLogs, insertMessageLog } from "@/lib/db";
+import { getClients, getMessageLogs, insertMessageLog, updateClient } from "@/lib/db";
 import { generateOutreach } from "@/lib/ai-stub";
 import type { Client, MessageLog } from "@/types";
 import { Textarea } from "@/components/ui/textarea";
@@ -81,15 +81,20 @@ function OutreachInner() {
     if (!draft || !selectedClientId) return;
     setSaving(true);
     try {
-      const newLog = await insertMessageLog({
-        client_id: selectedClientId,
-        message_type: messageType as MessageLog["message_type"],
-        draft_content: draft,
-        sent_status: "draft",
-      });
+      const today = new Date().toISOString().split("T")[0]; // yyyy-MM-dd
+      const [newLog] = await Promise.all([
+        insertMessageLog({
+          client_id: selectedClientId,
+          message_type: messageType as MessageLog["message_type"],
+          draft_content: draft,
+          sent_status: "draft",
+        }),
+        // Update last_contact_date so dashboard "inactive clients" reflects this activity
+        updateClient(selectedClientId, { last_contact_date: today }),
+      ]);
       setLogs((prev) => [{ ...newLog, client: selectedClient }, ...prev]);
       setSaved(true);
-      toast.success("Draft saved successfully.");
+      toast.success("Draft saved — last contact date updated.");
     } catch {
       toast.error("Failed to save draft.");
     } finally {

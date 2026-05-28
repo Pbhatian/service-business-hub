@@ -22,7 +22,7 @@ import {
   Plus,
   CheckCircle,
 } from "lucide-react";
-import { format, parseISO, addDays } from "date-fns";
+import { format, parseISO, addDays, startOfWeek } from "date-fns";
 import { toast } from "sonner";
 
 const platformIcons: Record<ContentCalendarItem["post_type"], React.ReactNode> = {
@@ -70,7 +70,8 @@ export default function ContentPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const weekStart = new Date("2026-06-01");
+  // Calendar week: always show the current week (Monday-based)
+  const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
 
   async function handleGenerate() {

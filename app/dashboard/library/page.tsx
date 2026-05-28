@@ -112,6 +112,7 @@ export default function LibraryPage() {
     }
   }
 
+  // DB already returns items ordered by use_count desc; re-sort only on filtered subset
   const sortedFiltered = [...filtered].sort((a, b) => b.use_count - a.use_count);
 
   const statsValues = [

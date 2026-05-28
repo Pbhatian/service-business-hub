@@ -24,7 +24,25 @@ export async function getClientById(id: string): Promise<Client | null> {
     .select("*")
     .eq("id", id)
     .single();
-  if (error) return null;
+  // PGRST116 = "no rows returned" — expected when ID doesn't exist
+  if (error) {
+    if (error.code === "PGRST116") return null;
+    throw error;
+  }
+  return data as Client;
+}
+
+export async function updateClient(
+  id: string,
+  patch: Partial<Pick<Client, "name" | "email" | "phone" | "company" | "service_type" | "notes" | "tags" | "last_contact_date">>
+): Promise<Client> {
+  const { data, error } = await supabase
+    .from("clients")
+    .update(patch)
+    .eq("id", id)
+    .select()
+    .single();
+  if (error) throw error;
   return data as Client;
 }
 

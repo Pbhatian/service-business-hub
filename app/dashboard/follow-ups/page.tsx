@@ -160,9 +160,14 @@ export default function FollowUpsPage() {
   };
 
   const today = new Date();
-  const followUpClientIds = new Set(items.map((f) => f.client_id));
+  // Only exclude clients who have PENDING or SNOOZED follow-ups (not completed ones)
+  const activeFollowUpClientIds = new Set(
+    items
+      .filter((f) => f.follow_up_status !== "completed")
+      .map((f) => f.client_id)
+  );
   const needsAttention = clients.filter((c) => {
-    if (followUpClientIds.has(c.id)) return false;
+    if (activeFollowUpClientIds.has(c.id)) return false;
     if (!c.last_contact_date) return true;
     return differenceInDays(today, parseISO(c.last_contact_date)) >= 30;
   });
